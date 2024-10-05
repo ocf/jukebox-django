@@ -7,6 +7,8 @@ import pyaudio
 import wave
 import threading
 import queue
+import signal
+import sys
 
 CHUNK = 1024
 
@@ -23,6 +25,10 @@ class SongInfo(object):
 
 class Controller:
     def __init__(self, music_dir="music", music_cache_file="music/music_cache.json"):
+        # Initialize Ctrl+C handler to write to cache before exiting
+        
+        signal.signal(signal.SIGINT, self._signal_handler)
+
         self.song_queue = queue.Queue()
 
         self.next_lock = threading.Lock()
@@ -60,6 +66,10 @@ class Controller:
             print(f"Could not find {self.music_cache_file}, creating it.")
             with open(music_cache_file, "w") as f:
                 json.dump([], f)
+    
+    def _signal_handler(self, sig, frame):
+        self.quit()
+        sys.exit(0)
 
     # Song playback thread function
     def _music_worker(self):
@@ -177,6 +187,12 @@ class Controller:
         self.pause_lock.acquire()
         self.pause_signal = 0 if self.pause_signal else 1
         self.pause_lock.release()
+    
+    # Stops queue and writes to cache
+    def quit(self):
+        print("Quitting...")
+        self.stop()
+        self.write_cache()
 
 
 def input_handler(controller):
@@ -202,8 +218,7 @@ def input_handler(controller):
             controller.pause()
 
         if command == "quit":
-            controller.stop()
-            controller.write_cache()
+            controller.quit()
             break
 
     controller.song_queue.join()
