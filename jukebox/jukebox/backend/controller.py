@@ -1,3 +1,4 @@
+# Honestly would have been easier with rust
 import yt_dlp
 import json
 import jsonpickle
@@ -10,15 +11,7 @@ import queue
 CHUNK = 1024
 
 
-# For multithreading
-song_queue = queue.Queue()
-stop_lock = threading.Lock()
-stop_signal = 0
-
-
-
 class SongInfo(object):
-
     def __init__(self, name, file, plays, url, format):
         self.name = name
         self.file = file
@@ -26,39 +19,18 @@ class SongInfo(object):
         self.url = url
         self.format = format
 
-
-def worker():
-    global stop_signal, stop_lock
-
-    while (True):
-        item = song_queue.get()
-        print(f"working on {item.name}")
-
-        with wave.open(item.file, 'rb') as wf:
-            p = pyaudio.PyAudio()
-
-            stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
-                            channels=wf.getnchannels(),
-                            rate=wf.getframerate(),
-                            output=True)
-            while len(data := wf.readframes(CHUNK)):  # Requires Python 3.8+ for :=
-                if stop_signal:
-                    stop_lock.acquire()
-                    stop_signal = 0
-                    stop_lock.release()
-                    break
-                stream.write(data)
-
-        stream.close()
-        p.terminate()
-
-        song_queue.task_done()
-
 # Class to Control videos
-
 
 class Controller:
     def __init__(self, music_dir="music", music_cache_file="music/music_cache.json"):
+        self.song_queue = queue.Queue()
+
+        self.next_lock = threading.Lock()
+        self.next_signal = 0
+        self.pause_lock = threading.Lock()
+        self.pause_signal = 0
+
+        threading.Thread(target=self._music_worker, daemon=True).start()
 
         self.download_opts = {
             "extract_audio": True,
@@ -89,28 +61,68 @@ class Controller:
             with open(music_cache_file, "w") as f:
                 json.dump([], f)
 
+    # Song playback thread function
+    def _music_worker(self):
+        while (True):
+            item = self.song_queue.get()
+            print(f"working on {item.name}")
+
+            with wave.open(item.file, 'rb') as wf:
+                p = pyaudio.PyAudio()
+
+                stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                                channels=wf.getnchannels(),
+                                rate=wf.getframerate(),
+                                output=True)
+
+                while True:
+                    if self.next_signal:
+                        self.next_lock.acquire()
+                        self.next_signal = 0
+                        self.next_lock.release()
+                        break
+
+                    if self.pause_signal:
+                        continue
+
+                    data = wf.readframes(CHUNK)
+                    if len(data) == 0:
+                        break
+                    stream.write(data)
+
+            stream.close()
+            p.terminate()
+
+            self.song_queue.task_done()
+
+    # Delete all songs from the cache
     def delete_cache(self):
+        for song in self.music_cache:
+            os.remove(song.file)
         self.music_cache = []
         os.remove(self.music_cache_file)
 
+    # Delete a file by its name
     def delete_file(self, name):
-        for song in self.music_cache:
-            if song.name == name:
-                os.remove(song.file)
-                self.music_cache.remove(song)
-                return
+        song = self.find_file_by_name(name)
+        os.remove(song.file)
+        self.music_cache.remove(song)
+        return
 
+    # Write to the song cache
     def write_cache(self):
         with open(self.music_cache_file, "w+") as f:
             json_cache = jsonpickle.encode(self.music_cache)
             f.write(json_cache)
 
+    # Find the SongInfo by its url, otherwise return None
     def find_file_by_url(self, url):
         for song in self.music_cache:
             if (song.url == url):
                 return song
         return None
 
+    # Find the SongInfo by its name, otherwise return None
     def find_file_by_name(self, name):
         for song in self.music_cache:
             if (song.name == name):
@@ -135,27 +147,42 @@ class Controller:
             print(filename)
             self.music_cache.append(SongInfo(title, filename, 0, url, format))
 
-    def play_name(self, name):
+    # Play a song by its name (normally file name without extension)
+    def play(self, name):
         song = self.find_file_by_name(name)
         if song == None:
             print("Unable to locate a song with that name.")
             return
-        song_queue.put(song)
+        self.song_queue.put(song)
+        song.plays += 1
 
-    def stop(self):
-        global stop_signal, stop_lock
-
-        if stop_signal == 1:
+    # Change to the next song by finishing the current song on the worker thread
+    def next(self):
+        if self.next_signal == 1:
             return
 
-        stop_lock.acquire()
-        stop_signal = 1
-        stop_lock.release()
+        self.next_lock.acquire()
+        self.next_signal = 1
+        self.next_lock.release()
+
+    # Stop playback of music by deleting all items off the song queue
+    def stop(self):
+        with self.song_queue.mutex:
+            self.song_queue.queue.clear()
+        self.next()
+
+    # Pause music playback by setting pause_signal to 1
+    def pause(self):
+        # Already paused
+        self.pause_lock.acquire()
+        self.pause_signal = 0 if self.pause_signal else 1
+        self.pause_lock.release()
 
 
-def input_handler():
+def input_handler(controller):
     while True:
-        command = input("Enter command (download, play, stop, quit): ").strip().lower()
+        command = input(
+            "Enter command (download, play, next, stop, pause, quit): ").strip().lower()
 
         if command == "download":
             url = input("Enter the youtube url to download: ")
@@ -163,21 +190,25 @@ def input_handler():
 
         if command == "play":
             name = input("Enter the name of the file to play: ")
-            controller.play_name(name)
+            controller.play(name)
+
+        if command == "next":
+            controller.next()
 
         if command == "stop":
             controller.stop()
+
+        if command == "pause":
+            controller.pause()
 
         if command == "quit":
             controller.stop()
             controller.write_cache()
             break
 
+    controller.song_queue.join()
+
 
 if __name__ == "__main__":
-    threading.Thread(target=worker, daemon=True).start()
     controller = Controller()
-    controller.download("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-
-    input_handler()
-    song_queue.join()
+    input_handler(controller)
