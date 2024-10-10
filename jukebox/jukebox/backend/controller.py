@@ -142,6 +142,7 @@ class Controller:
     # Download music from a url
     def download(self, url):
         if self.find_file_by_url(url):
+            print("Song is already downloaded with same url: " + url)
             return
 
         download_opts = self.download_opts
@@ -156,6 +157,7 @@ class Controller:
             filename = f"{audio.prepare_filename(info_dict)}.{format}"
             print(filename)
             self.music_cache.append(SongInfo(title, filename, 0, url, format))
+            self.write_cache()
 
     # Play a song by its name (normally file name without extension)
     def play(self, name):
