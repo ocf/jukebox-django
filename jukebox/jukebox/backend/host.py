@@ -1,97 +1,47 @@
-import os.path
-import yt_dlp
 import config
-import json
+import asyncio
+import websockets
+import aioconsole
 from websockets.sync.client import connect
 
 FILE_CHUNK = 1024
+CMD = ["play", "pause", "next", "stop"]
 
 
-class Host:
-    def __init__(self, music_dir="/tmp"):
-        self.download_opts = {
-            "extract_audio": True,
-            "format": "bestaudio",
-            "outtmp": "%(title)s",
-            "postprocessors": [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "wav",
-                "preferredquality": "192",
-            }],
-        }
-
-        self.CMDs = ["play", "pause", "next", "stop", "quit"]
-
-        self.music_dir = music_dir
-        if not os.path.exists(music_dir):
-            print(f"Unable to find music directory {music_dir}")
-
-        self.ws = connect(f"ws://localhost:{config.PORT}")
-
-    def download_and_queue(self, url):
-        download_opts = self.download_opts
-        print(download_opts["outtmp"])
-
-        with yt_dlp.YoutubeDL(download_opts) as audio:
-            info_dict = audio.extract_info(url, download=True)
-
-            title = info_dict["title"]
-            format = "wav"  # hardcoded for now
-            file = f"{audio.prepare_filename(info_dict).split(".")[0]}.{
-                format}"
-            song = {"title": title, "file": file, "format": format}
-            self.queue(song)
-            self.remove(song)
-
-    def remove(self, song):
-        print(f"Trying to remove {song["file"]}")
-        try:
-            os.remove(song["file"])
-        except:
-            print("Unable to remove file.")
-
-    def command(self, cmd):
-        cmd = cmd.lower()
-        if cmd not in self.CMDs:
-            print("Invalid command.")
-            return
-
-        try:
-            self.ws.send(cmd)
-        except:
-            print(f"Unable to send {cmd} command.")
-
-    def send_file(self, file):
-        with open(file, "rb") as f:
-            data = f.read(FILE_CHUNK)
-            while (data):
-                self.ws.send(data)
-                data = f.read(FILE_CHUNK)
-            self.ws.send("finished")
-
-    def queue(self, song):
-        try:
-            self.ws.send("queue")
-            self.ws.send(json.dumps(song))
-            self.send_file(song["file"])
-        except:
-            print("Unable to send song information.")
+async def consumer(message):
+    print(f"Received {message}")
 
 
-def handler():
-    host = Host()
+async def consumer_handler(websocket):
+    async for message in websocket:
+        await consumer(message)
+
+
+async def producer():
+    command = await aioconsole.ainput(
+        f"Please input a command (play, pause, next, stop, or quit): ")
+    return command
+
+
+async def producer_handler(websocket):
     while True:
-        command = input("Please input a command:")
-        if command == "download":
-            url = input("Please input the download url:")
-            host.download_and_queue(url)
+        message = await producer()
+        if message:
+            await websocket.send(message)
 
-        elif command == "quit":
-            break
 
-        else:
-            host.command(command)
+async def handler(uri):
+    async with websockets.connect(uri, ping_interval=10, ping_timeout=20) as websocket:
+        consumer_task = asyncio.create_task(consumer_handler(websocket))
+        producer_task = asyncio.create_task(producer_handler(websocket))
 
+        done, pending = await asyncio.wait(
+            [consumer_task, producer_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for task in pending:
+            task.cancel()
 
 if __name__ == "__main__":
-    handler()
+    uri = f"ws://localhost:{config.PORT}"
+    asyncio.run(handler(uri))
