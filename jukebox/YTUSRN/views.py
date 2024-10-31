@@ -6,7 +6,6 @@ from .models import UserField
 
 
 def index(request):
-    current_users = get_object_or_404(UserField)
     try:
         username_input = request.POST["username"]
         print(username_input)
@@ -17,7 +16,6 @@ def index(request):
         )
     else:
         return HttpResponseRedirect(reverse("YTUSRN:ytflp"))
-
 
 
 def ytflp(request):
