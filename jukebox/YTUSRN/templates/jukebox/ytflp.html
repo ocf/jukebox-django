@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit a URL</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 320px;
+            padding: 30px;
+            border-radius: 8px;
+            background-color: #252525;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: #ffcc00;
+        }
+
+        input[type="url"] {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background-color: #333;
+            color: #e0e0e0;
+            font-size: 16px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input[type="url"]::placeholder {
+            color: #aaa;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background-color: #ffcc00;
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #e6b800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Submit a URL</h2>
+        <form action="/YTUSRN/givemeYT/" method="POST">
+            {% csrf_token %}
+            <input type="url" name="url" placeholder="Enter URL" required>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+</body>
+</html>
