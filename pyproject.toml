@@ -10,6 +10,14 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.10,<3.13"
 django = "^5.1.1"
+yt-dlp = "^2024.9.27"
+jsonpickle = "^3.3.0"
+wheel = "^0.44.0"
+pyaudio = "^0.2.14"
+websockets = "^13.1"
+aioconsole = "^0.8.0"
+django-icons = "^24.4"
+channels = {extras = ["daphne"], version = "^4.2.0"}
 
 
 [build-system]

@@ -31,13 +31,26 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'YTUSRN.apps.YtusrnConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_icons',
 ]
+
+ASGI_APPLICATION = "jukebox.asgi.application"
+
+DJANGO_ICONS = {
+    "ICONS": {
+        "record": {"name": "fa-solid fa-record-vinyl"},
+        "pause": {"name": "fa-solid fa-pause"},
+        "next": {"name": "fa-solid fa-forward-step"},
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -105,7 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'US/Pacific'
 
 USE_I18N = True
 

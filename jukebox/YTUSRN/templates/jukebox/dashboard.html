@@ -1,0 +1,67 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'YTUSRN/style.css' %}" />
+
+{% load icons %}
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+/>
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+  </head>
+  <body>
+    <div class="centered-container">
+      <div class="outlined col-container">
+        <h2>Submit URL</h2>
+        <form method="POST">
+          {% csrf_token %}
+          <input
+            type="url"
+            name="url"
+            placeholder="Enter URL"
+            id="url-input"
+            required
+          />
+          <button type="submit" id="url-button">Submit</button>
+        </form>
+        <div class="row-container outlined">
+          <div id="pause-button" class="control-icon">
+            {% icon 'pause' extra_classes='fa-xl'%}
+          </div>
+          <div id="next-button" class="control-icon">
+            {% icon 'next' extra_classes='fa-xl'%}
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const socket = new WebSocket("ws://localhost:42069");
+
+      const url_input = document.querySelector("#url-input");
+      const url_button = document.querySelector("#url-button");
+
+      const pause_button = document.querySelector("#pause-button");
+      const next_button = document.querySelector("#next-button");
+
+      url_button.onclick = (e) => {
+        const message = url_input.value;
+        console.log(message);
+        socket.send("play " + message);
+        url_input.value = "";
+      };
+
+      pause_button.onclick = (e) => {
+        socket.send("pause");
+      };
+
+      next_button.onclick = (e) => {
+        socket.send("next");
+      };
+    </script>
+  </body>
+</html>
