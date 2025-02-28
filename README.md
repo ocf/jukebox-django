@@ -28,6 +28,19 @@ Activate the Poetry environment:
 poetry shell
 ```
 
+## Running the project
+
+#### Starting the Server
+
+Enter the `backend` directory, then run `runner.py`:
+
+```
+cd backend/
+python3 runner.py
+```
+
+#### Starting the Website
+
 Enter the `jukebox` directory, and run the project:
 
 ```
@@ -35,3 +48,4 @@ cd jukebox/
 python manage.py runserver
 ```
 
+Go to `http://127.0.0.1:8000/YTUSRN/` to access the website.
