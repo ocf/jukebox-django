@@ -47,6 +47,12 @@ nix develop
 nix build
 ```
 
+The build process produces the following executables:
+
+- `result/bin/jukebox-django-server` - Run the Django web server
+- `result/bin/jukebox-django-backend` - Run the backend server
+- `result/bin/jukebox-django-setup` - Setup a virtual environment with missing packages
+
 #### Without flakes:
 
 ```bash
@@ -95,6 +101,32 @@ To deploy this application on a NixOS system, you can import the flake directly 
           environment.systemPackages = [
             jukebox-django.packages.${pkgs.system}.default
           ];
+          
+          # Optional: Create a systemd service for the backend server
+          systemd.services.jukebox-backend = {
+            description = "Jukebox Backend Service";
+            wantedBy = [ "multi-user.target" ];
+            after = [ "network.target" ];
+            serviceConfig = {
+              ExecStart = "${jukebox-django.packages.${pkgs.system}.default}/bin/jukebox-django-backend";
+              Restart = "always";
+              User = "jukebox";
+              Group = "jukebox";
+            };
+          };
+          
+          # Optional: Create a systemd service for the Django server
+          systemd.services.jukebox-server = {
+            description = "Jukebox Django Web Service";
+            wantedBy = [ "multi-user.target" ];
+            after = [ "network.target" ];
+            serviceConfig = {
+              ExecStart = "${jukebox-django.packages.${pkgs.system}.default}/bin/jukebox-django-server 0.0.0.0:8000";
+              Restart = "always";
+              User = "jukebox";
+              Group = "jukebox";
+            };
+          };
         })
       ];
     };
