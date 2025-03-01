@@ -77,7 +77,7 @@
             (python311.withPackages (ps: with ps; [
               poetry-core
               pip
-              venv
+              # venv is a built-in module, not a package
             ]))
             portaudio
           ];
