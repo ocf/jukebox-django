@@ -28,6 +28,29 @@ Activate the Poetry environment:
 poetry shell
 ```
 
+## Using Nix (recommended for NixOS deployments)
+
+This project includes Nix flake support for reproducible environments with all dependencies:
+
+### With flakes enabled:
+
+```
+# Development shell
+nix develop
+
+# Build the package
+nix build
+```
+
+### Without flakes:
+
+```
+# Development shell
+nix-shell
+```
+
+The Nix configuration automatically handles all dependencies, including system libraries like PortAudio which PyAudio requires.
+
 ## Running the project
 
 #### Starting the Server
