@@ -23,7 +23,7 @@
           src = ./.;
 
           nativeBuildInputs = [
-            pkgs.poetry-core
+            pythonPackages.poetry-core
           ];
 
           propagatedBuildInputs = with pythonPackages; [
@@ -60,9 +60,11 @@
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             python311
-            poetry
+            (python311.withPackages (ps: with ps; [
+              poetry-core
+              pip
+            ]))
             portaudio
-            python311Packages.pip
           ];
 
           shellHook = ''
