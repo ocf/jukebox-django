@@ -36,9 +36,8 @@
             aioconsole
             channels
             daphne
-            portaudio  # System dependency for pyaudio
             pip  # Include pip for installing missing packages
-          ];
+          ] ++ [ pkgs.portaudio ];  # Add system dependency for pyaudio
 
           # Make sure Python can find portaudio and install missing packages
           makeWrapperArgs = [
