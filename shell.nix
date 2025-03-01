@@ -5,9 +5,18 @@
 
 pkgs.mkShell {
   buildInputs = with pkgs; [
-    python311
-    python311Packages.pip
-    python311Packages.poetry-core
+    (python311.withPackages (ps: with ps; [
+      django
+      yt-dlp
+      jsonpickle
+      wheel
+      pyaudio
+      websockets
+      aioconsole
+      channels
+      daphne
+      pip
+    ]))
     portaudio
   ];
 
