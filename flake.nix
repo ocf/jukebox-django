@@ -42,12 +42,27 @@
           # Make sure Python can find portaudio and install missing packages
           makeWrapperArgs = [
             "--prefix LD_LIBRARY_PATH : ${pkgs.portaudio}/lib"
-            # Install missing packages on first run
-            "--run 'pip install django-icons==24.4 --no-warn-script-location'"
           ];
 
           # Skip tests during build
           doCheck = false;
+
+          postInstall = ''
+            # Create a wrapper script that installs missing packages in a local venv
+            mkdir -p $out/bin
+            cat > $out/bin/setup-jukebox << EOF
+            #!/bin/sh
+            if [ ! -d .venv ]; then
+              echo "Creating virtual environment..."
+              python -m venv .venv
+              . .venv/bin/activate
+              pip install django-icons==24.4
+            else
+              . .venv/bin/activate
+            fi
+            EOF
+            chmod +x $out/bin/setup-jukebox
+          '';
         };
       in
       {
@@ -62,6 +77,7 @@
             (python311.withPackages (ps: with ps; [
               poetry-core
               pip
+              venv
             ]))
             portaudio
           ];
@@ -69,12 +85,21 @@
           shellHook = ''
             # Set up environment variables if needed
             export PYTHONPATH=$PWD:$PYTHONPATH
+            export LD_LIBRARY_PATH=${pkgs.portaudio}/lib:$LD_LIBRARY_PATH
             
-            # Install packages not in nixpkgs
-            pip install django-icons==24.4 --no-warn-script-location
+            # Create a local virtual environment for pip packages
+            if [ ! -d .venv ]; then
+              echo "Creating virtual environment..."
+              python -m venv .venv
+              . .venv/bin/activate
+              pip install django-icons==24.4
+            else
+              . .venv/bin/activate
+            fi
             
             # Note for users
-            echo "Nix development environment for jukebox-django"
+            echo "Nix development environment for jukebox-django activated!"
+            echo "Virtual environment is active with all dependencies installed."
             echo "To run the backend server: cd jukebox/backend && python runner.py"
             echo "To run the Django server: cd jukebox && python manage.py runserver"
           '';
