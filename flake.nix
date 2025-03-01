@@ -34,15 +34,17 @@
             pyaudio
             websockets
             aioconsole
-            django-icons
             channels
             daphne
             portaudio  # System dependency for pyaudio
+            pip  # Include pip for installing missing packages
           ];
 
-          # Make sure Python can find portaudio
+          # Make sure Python can find portaudio and install missing packages
           makeWrapperArgs = [
             "--prefix LD_LIBRARY_PATH : ${pkgs.portaudio}/lib"
+            # Install missing packages on first run
+            "--run 'pip install django-icons==24.4 --no-warn-script-location'"
           ];
 
           # Skip tests during build
@@ -60,11 +62,15 @@
             python311
             python311Packages.poetry
             portaudio
+            python311Packages.pip
           ];
 
           shellHook = ''
             # Set up environment variables if needed
             export PYTHONPATH=$PWD:$PYTHONPATH
+            
+            # Install packages not in nixpkgs
+            pip install django-icons==24.4 --no-warn-script-location
             
             # Note for users
             echo "Nix development environment for jukebox-django"
