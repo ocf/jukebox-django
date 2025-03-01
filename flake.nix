@@ -13,56 +13,84 @@
           inherit system;
         };
 
-        pythonPackages = pkgs.python311Packages;
+        pythonEnv = pkgs.python311.withPackages (ps: with ps; [
+          django
+          yt-dlp
+          jsonpickle
+          wheel
+          pyaudio
+          websockets
+          aioconsole
+          channels
+          daphne
+          pip
+        ]);
 
-        jukebox-django = pythonPackages.buildPythonApplication {
+        # Create a custom derivation for the jukebox app
+        jukebox-django = pkgs.stdenv.mkDerivation {
           pname = "jukebox-django";
           version = "0.1.0";
-          format = "pyproject";
-
           src = ./.;
 
-          nativeBuildInputs = [
-            pythonPackages.poetry-core
+          buildInputs = [
+            pythonEnv
+            pkgs.portaudio
           ];
 
-          propagatedBuildInputs = with pythonPackages; [
-            django
-            yt-dlp
-            jsonpickle
-            wheel
-            pyaudio
-            websockets
-            aioconsole
-            channels
-            daphne
-            pip  # Include pip for installing missing packages
-          ] ++ [ pkgs.portaudio ];  # Add system dependency for pyaudio
+          # No build phase, just install the files
+          dontBuild = true;
 
-          # Make sure Python can find portaudio and install missing packages
-          makeWrapperArgs = [
-            "--prefix LD_LIBRARY_PATH : ${pkgs.portaudio}/lib"
-          ];
+          installPhase = ''
+            mkdir -p $out/share/jukebox-django
+            cp -r . $out/share/jukebox-django
 
-          # Skip tests during build
-          doCheck = false;
-
-          postInstall = ''
-            # Create a wrapper script that installs missing packages in a local venv
+            # Create a wrapper script to run the Django server
             mkdir -p $out/bin
-            cat > $out/bin/setup-jukebox << EOF
+            cat > $out/bin/jukebox-django-server << EOF
+            #!/bin/sh
+            cd $out/share/jukebox-django/jukebox
+            ${pythonEnv}/bin/python manage.py runserver "\$@"
+            EOF
+
+            # Create a wrapper script to run the backend
+            cat > $out/bin/jukebox-django-backend << EOF
+            #!/bin/sh
+            cd $out/share/jukebox-django/jukebox/backend
+            ${pythonEnv}/bin/python runner.py "\$@"
+            EOF
+
+            # Create a setup script
+            cat > $out/bin/jukebox-django-setup << EOF
             #!/bin/sh
             if [ ! -d .venv ]; then
               echo "Creating virtual environment..."
-              python -m venv .venv
+              ${pythonEnv}/bin/python -m venv .venv
               . .venv/bin/activate
               pip install django-icons==24.4
             else
               . .venv/bin/activate
             fi
             EOF
-            chmod +x $out/bin/setup-jukebox
+
+            chmod +x $out/bin/jukebox-django-server
+            chmod +x $out/bin/jukebox-django-backend
+            chmod +x $out/bin/jukebox-django-setup
           '';
+
+          # Ensure Python can find portaudio
+          fixupPhase = ''
+            wrapProgram $out/bin/jukebox-django-server \
+              --prefix LD_LIBRARY_PATH : ${pkgs.portaudio}/lib \
+              --prefix PYTHONPATH : $PYTHONPATH
+
+            wrapProgram $out/bin/jukebox-django-backend \
+              --prefix LD_LIBRARY_PATH : ${pkgs.portaudio}/lib \
+              --prefix PYTHONPATH : $PYTHONPATH
+          '';
+
+          nativeBuildInputs = [ 
+            pkgs.makeWrapper
+          ];
         };
       in
       {
@@ -73,11 +101,17 @@
 
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            python311
             (python311.withPackages (ps: with ps; [
-              poetry-core
+              django
+              yt-dlp
+              jsonpickle
+              wheel
+              pyaudio
+              websockets
+              aioconsole
+              channels
+              daphne
               pip
-              # venv is a built-in module, not a package
             ]))
             portaudio
           ];
