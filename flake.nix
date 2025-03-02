@@ -114,6 +114,7 @@
               pip
             ]))
             portaudio
+            ffmpeg
           ];
 
           shellHook = ''

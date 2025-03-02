@@ -73,13 +73,14 @@ class Controller:
 
                     title = info_dict["title"]
                     format = "wav"  # hardcoded for now
-                    # Probably a better way to get this
-                    file = f"{audio.prepare_filename(info_dict).split(".")[0]}.{
-                        format}"
+
+                    prepared_filename = audio.prepare_filename(info_dict)
+                    base_filename = os.path.splitext(prepared_filename)[0]
+                    file = f"{base_filename}.{format}"
                     song = Song(title, file, format)
                     self.song_queue.put(song)
-            except:
-                print("Unable to download the song.")
+            except Exception as e:
+                print("Unable to download the song:", e)
             self.download_queue.task_done()
 
     # Song playback thread function
@@ -116,8 +117,8 @@ class Controller:
                 p.terminate()
 
                 os.remove(path)
-            except:
-                print("Unable to play song.")
+            except Exception as e:
+                print("Unable to play song:", e)
 
             self.song_queue.task_done()
 
