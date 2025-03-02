@@ -74,7 +74,7 @@ class Controller:
                     title = info_dict["title"]
                     format = "wav"  # hardcoded for now
                     # Probably a better way to get this
-                    file = f"{audio.prepare_filename(info_dict).split(".")[0]}.{format}"
+                    file = f"{audio.prepare_filename(info_dict).split('.')[0]}.{format}"
                     song = Song(title, file, format)
                     self.song_queue.put(song)
             except:
