@@ -27,20 +27,9 @@ pkgs.mkShell {
     # Use the portaudio library
     export LD_LIBRARY_PATH=${pkgs.portaudio}/lib:$LD_LIBRARY_PATH
     
-    # Create a local virtual environment for pip packages
-    if [ ! -d .venv ]; then
-      echo "Creating virtual environment..."
-      ${pkgs.python311}/bin/python -m venv .venv
-      . .venv/bin/activate
-      pip install django-icons==24.4
-    else
-      . .venv/bin/activate
-    fi
-    
     # Note for users
     echo "Nix development environment for jukebox-django activated!"
-    echo "Virtual environment is active with all dependencies installed."
-    echo "To run the backend server: cd jukebox/backend && python runner.py"
+    echo "To run the backend server: python jukebox/backend/runner.py"
     echo "To run the Django server: cd jukebox && python manage.py runserver"
   '';
 } 
