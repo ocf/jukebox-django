@@ -115,8 +115,8 @@ class Controller:
                 p.terminate()
 
                 os.remove(path)
-            except:
-                print("Unable to play song.")
+            except Exception as e:
+                print("Unable to play song:", e)
 
             self.song_queue.task_done()
 
