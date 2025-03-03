@@ -43,10 +43,8 @@ class Controller:
         self.song_queue = queue.Queue()
         self.download_queue = queue.Queue()
 
-        self.next_lock = threading.Lock()
-        self.next_signal = 0
-        self.pause_lock = threading.Lock()
-        self.pause_signal = 0
+        self.next_event = threading.Event()
+        self.pause_event = threading.Event()
 
         threading.Thread(target=self._download_worker, daemon=True).start()
         threading.Thread(target=self._music_worker, daemon=True).start()
@@ -99,19 +97,17 @@ class Controller:
                                     output=True)
 
                     while True:
-                        if self.next_signal:
-                            self.next_lock.acquire()
-                            self.next_signal = 0
-                            self.next_lock.release()
+                        if self.next_event.is_set():
+                            self.next_event.clear()
                             break
-
-                        if self.pause_signal:
-                            continue
-
-                        data = wf.readframes(CHUNK)
-                        if len(data) == 0:
-                            break
-                        stream.write(data)
+                            
+                        if not self.pause_event.is_set():
+                            data = wf.readframes(CHUNK)
+                            if len(data) == 0:
+                                break
+                            stream.write(data)
+                        else:
+                            self.pause_event.wait(0.1)
 
                 stream.close()
                 p.terminate()
@@ -135,12 +131,7 @@ class Controller:
 
     # Change to the next song by finishing the current song on the worker thread
     def next(self):
-        if self.next_signal == 1:
-            return
-
-        self.next_lock.acquire()
-        self.next_signal = 1
-        self.next_lock.release()
+        self.next_event.set()
 
     # Stop playback of music by deleting all items off the song queue
     def stop(self):
@@ -162,16 +153,15 @@ class Controller:
 
     # Pause music playback by setting pause_signal to 1
     def pause(self):
-        # Already paused
-        self.pause_lock.acquire()
-        self.pause_signal = 0 if self.pause_signal else 1
-        self.pause_lock.release()
+        if self.pause_event.is_set():
+            self.pause_event.clear()
+            return
+        self.pause_event.set()
 
     # Stops queue and writes to cache
     def quit(self):
         print("Quitting...")
         self.stop()
-
 
 async def handler(ws):
     controller = Controller(music_dir="music")
