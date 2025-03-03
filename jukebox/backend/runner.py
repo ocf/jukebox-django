@@ -164,7 +164,7 @@ class Controller:
         self.stop()
 
 async def handler(ws):
-    controller = Controller(music_dir="music")
+    global controller
     while True:
         try:
             message = await ws.recv()
@@ -192,6 +192,8 @@ async def handler(ws):
             break
     controller.song_queue.join()
 
+
+controller = Controller(music_dir="music")
 
 async def main():
     async with serve(handler, "", config.PORT, ping_interval=10, ping_timeout=20):
