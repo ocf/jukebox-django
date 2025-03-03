@@ -5,11 +5,7 @@ import threading
 import queue
 import signal
 import sys
-import config
-import asyncio
-import websockets
 import yt_dlp
-from websockets.asyncio.server import serve
 
 CHUNK = 1024
 
@@ -39,6 +35,7 @@ class Controller:
         }
 
         signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
 
         self.song_queue = queue.Queue()
         self.download_queue = queue.Queue()
@@ -163,41 +160,3 @@ class Controller:
         print("Quitting...")
         self.stop()
 
-async def handler(ws):
-    global controller
-    while True:
-        try:
-            message = await ws.recv()
-        except websockets.ConnectionClosedOK:
-            break
-            
-        args = message.split()
-
-        if args[0] == "play":
-            if (len(args) == 2):
-                url = args[1]
-                controller.play(url)
-
-        if args[0] == "next":
-            controller.next()
-
-        if args[0] == "stop":
-            controller.stop()
-
-        if args[0] == "pause":
-            controller.pause()
-
-        if args[0] == "quit":
-            controller.quit()
-            break
-    controller.song_queue.join()
-
-
-controller = Controller(music_dir="music")
-
-async def main():
-    async with serve(handler, "", config.PORT, ping_interval=10, ping_timeout=20):
-        await asyncio.get_running_loop().create_future()
-
-if __name__ == "__main__":
-    asyncio.run(main())

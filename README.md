@@ -66,11 +66,11 @@ The Nix configuration automatically creates a Python virtual environment (.venv)
 
 #### Starting the Server
 
-Enter the `backend` directory, then run `runner.py`:
+Enter the `backend` directory, then run `main.py`:
 
 ```
 cd backend/
-python3 runner.py
+python3 main.py
 ```
 
 #### Starting the Website

@@ -39,29 +39,6 @@
         </div>
       </div>
     </div>
-    <script>
-      const socket = new WebSocket("ws://localhost:42069");
-
-      const url_input = document.querySelector("#url-input");
-      const url_button = document.querySelector("#url-button");
-
-      const pause_button = document.querySelector("#pause-button");
-      const next_button = document.querySelector("#next-button");
-
-      url_button.onclick = (e) => {
-        const message = url_input.value;
-        console.log(message);
-        socket.send("play " + message);
-        url_input.value = "";
-      };
-
-      pause_button.onclick = (e) => {
-        socket.send("pause");
-      };
-
-      next_button.onclick = (e) => {
-        socket.send("next");
-      };
-    </script>
+    <script src="{% static 'YTUSRN/script.js' %}"></script>
   </body>
 </html>
