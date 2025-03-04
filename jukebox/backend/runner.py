@@ -11,10 +11,12 @@ CHUNK = 1024
 
 
 class Song:
-    def __init__(self, title, file, format):
+    def __init__(self, title, author, file, format, thumbnail):
         self.title = title
+        self.author = author
         self.file = file
         self.format = format
+        self.thumbnail = thumbnail
 
 # Class to Control videos
 
@@ -37,7 +39,10 @@ class Controller:
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
 
+        # Songs that have been downloaded and are ready to play
         self.song_queue = queue.Queue()
+        self.song_list = []
+        # Songs that need to be downloaded
         self.download_queue = queue.Queue()
 
         self.next_event = threading.Event()
@@ -57,23 +62,28 @@ class Controller:
 
     def _download_worker(self):
         while (True):
-            try: 
+            try:
                 url = self.download_queue.get()
 
                 download_opts = self.download_opts
-                download_opts["outtmpl"] = os.path.join(self.music_dir, "%(title)s")
+                download_opts["outtmpl"] = os.path.join(
+                    self.music_dir, "%(title)s")
 
                 with yt_dlp.YoutubeDL(download_opts) as audio:
                     info_dict = audio.extract_info(url, download=True)
 
-                    title = info_dict["title"]
+                    thumbnail = info_dict.get("thumbnail", "")
+                    title = info_dict.get("title", "")
                     format = "wav"  # hardcoded for now
-
                     prepared_filename = audio.prepare_filename(info_dict)
                     base_filename = os.path.splitext(prepared_filename)[0]
                     file = f"{base_filename}.{format}"
-                    song = Song(title, file, format)
+                    author = info_dict.get("channel", "No Author")
+
+                    song = Song(title=title, author=author, file=file, format=format, thumbnail=thumbnail)
+
                     self.song_queue.put(song)
+                    self.song_list.append(song)
             except Exception as e:
                 print("Unable to download the song:", e)
             self.download_queue.task_done()
@@ -81,39 +91,41 @@ class Controller:
     # Song playback thread function
     def _music_worker(self):
         while (True):
-            try:
-                item = self.song_queue.get()
-                path = item.file
-                
-                with wave.open(path, 'rb') as wf:
-                    p = pyaudio.PyAudio()
+            song = self.song_queue.get()
+            path = song.file
 
-                    stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
-                                    channels=wf.getnchannels(),
-                                    rate=wf.getframerate(),
-                                    output=True)
+            self.play_song(path)
+            os.remove(path)
 
-                    while True:
-                        if self.next_event.is_set():
-                            self.next_event.clear()
+            if song in self.song_list:
+                self.song_list.remove(song)
+            self.song_queue.task_done()
+
+    def play_song(self, path):
+        try:
+            with wave.open(path, 'rb') as wf:
+                p = pyaudio.PyAudio()
+                stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                                channels=wf.getnchannels(),
+                                rate=wf.getframerate(),
+                                output=True)
+                while True:
+                    if self.next_event.is_set():
+                        self.next_event.clear()
+                        break
+
+                    if not self.pause_event.is_set():
+                        data = wf.readframes(CHUNK)
+                        if len(data) == 0:
                             break
-                            
-                        if not self.pause_event.is_set():
-                            data = wf.readframes(CHUNK)
-                            if len(data) == 0:
-                                break
-                            stream.write(data)
-                        else:
-                            self.pause_event.wait(0.1)
-
+                        stream.write(data)
+                    else:
+                        self.pause_event.wait(0.1)
                 stream.close()
                 p.terminate()
 
-                os.remove(path)
-            except Exception as e:
-                print("Unable to play song:", e)
-
-            self.song_queue.task_done()
+        except Exception as e:
+            print("Unable to play song:", e)
 
     def remove(self, song):
         print(f"Trying to remove {song.file}")
@@ -159,4 +171,3 @@ class Controller:
     def quit(self):
         print("Quitting...")
         self.stop()
-

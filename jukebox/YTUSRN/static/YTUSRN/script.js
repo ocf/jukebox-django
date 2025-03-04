@@ -13,6 +13,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const pauseButton = document.querySelector("#pause-button");
   const nextButton = document.querySelector("#next-button");
 
+  const songTitle = document.querySelector("#song-title");
+  const songAuthor = document.querySelector("#song-author");
+  const songThumbnail = document.querySelector("#song-thumbnail");
+
+  const queue = document.querySelector("#queue");
+
   urlButton.addEventListener("click", (e) => {
     e.preventDefault();
     const urlValue = urlInput.value.trim();
@@ -36,14 +42,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   socket.onclose = () => {
     console.warn("WebSocket closed, attempting to reconnect...");
-    // Reload the webpage to reconnect
-    setTimeout(() => location.reload());
   };
 
   socket.onmessage = (event) => {
     try {
         const response = JSON.parse(event.data);
         console.log("Received packet:", response);
+
+        if (response.type === "now_playing") {
+            const title = response.payload.title;
+            const author = response.payload.author;
+            const thumbnail = response.payload.thumbnail;
+
+            songTitle.innerHTML = title;
+            songAuthor.innerHTML = author;
+            songThumbnail.src = thumbnail;
+        }
+
+        else if (response.type === "songs") {
+            const songs = response.payload.songs
+            
+            queue.innerHTML = songs.map((song) => {
+                return `<div class="outlined queue-song-container">
+                    <img id="queue-thumbnail" src=${song.thumbnail} alt="Queue Thumbnail" />
+                    <div class="queue-song-info-container">
+                        <div>${song.title}</div>
+                        <div>${song.author}</div>
+                    </div>
+                </div>`
+            }).join('');
+        }
+
     } catch(error) {
         console.error("Error parsing message:", error)
     }
