@@ -15,8 +15,8 @@
     <title>Dashboard</title>
   </head>
   <body>
-    <div class="centered-container">
-      <div class="outlined col-container">
+    <div class="row-container">
+      <div class="outlined url-container">
         <h2>Submit URL</h2>
         <form method="POST">
           {% csrf_token %}
@@ -29,7 +29,15 @@
           />
           <button type="submit" id="url-button">Submit</button>
         </form>
-        <div class="row-container outlined">
+      </div>
+      <div class="outlined song-container">
+        <h2>Now Playing</h2>
+        <div class="song-info">
+          <h3 id="song-title">Nothing Playing</h3>
+          <h3 id="song-author">No Author</h3>
+          <img id="song-thumbnail" src="{% static 'YTUSRN/default_music.webp' %}" alt="Music Thumbnail" />
+        </div>
+        <div class="control-container outlined">
           <div id="pause-button" class="control-icon">
             {% icon 'pause' extra_classes='fa-xl'%}
           </div>
@@ -38,30 +46,11 @@
           </div>
         </div>
       </div>
+      <div class="outlined queue-container">
+        <h2>Queue</h2>
+        <div class="col-container" id="queue"></div>
+      </div>
     </div>
-    <script>
-      const socket = new WebSocket("ws://localhost:42069");
-
-      const url_input = document.querySelector("#url-input");
-      const url_button = document.querySelector("#url-button");
-
-      const pause_button = document.querySelector("#pause-button");
-      const next_button = document.querySelector("#next-button");
-
-      url_button.onclick = (e) => {
-        const message = url_input.value;
-        console.log(message);
-        socket.send("play " + message);
-        url_input.value = "";
-      };
-
-      pause_button.onclick = (e) => {
-        socket.send("pause");
-      };
-
-      next_button.onclick = (e) => {
-        socket.send("next");
-      };
-    </script>
+    <script src="{% static 'YTUSRN/script.js' %}"></script>
   </body>
 </html>

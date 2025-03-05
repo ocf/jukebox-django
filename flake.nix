@@ -56,7 +56,7 @@
             cat > $out/bin/jukebox-django-backend << EOF
             #!/bin/sh
             cd $out/share/jukebox-django/jukebox/backend
-            ${pythonEnv}/bin/python runner.py "\$@"
+            ${pythonEnv}/bin/python main.py "\$@"
             EOF
 
             # Create a setup script
@@ -135,7 +135,7 @@
             # Note for users
             echo "Nix development environment for jukebox-django activated!"
             echo "Virtual environment is active with all dependencies installed."
-            echo "To run the backend server: cd jukebox/backend && python runner.py"
+            echo "To run the backend server: cd jukebox/backend && python main.py"
             echo "To run the Django server: cd jukebox && python manage.py runserver"
           '';
         };

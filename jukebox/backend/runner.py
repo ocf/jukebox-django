@@ -5,20 +5,18 @@ import threading
 import queue
 import signal
 import sys
-import config
-import asyncio
-import websockets
 import yt_dlp
-from websockets.asyncio.server import serve
 
 CHUNK = 1024
 
 
 class Song:
-    def __init__(self, title, file, format):
+    def __init__(self, title, author, file, format, thumbnail):
         self.title = title
+        self.author = author
         self.file = file
         self.format = format
+        self.thumbnail = thumbnail
 
 # Class to Control videos
 
@@ -39,14 +37,16 @@ class Controller:
         }
 
         signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
 
+        # Songs that have been downloaded and are ready to play
         self.song_queue = queue.Queue()
+        self.song_list = []
+        # Songs that need to be downloaded
         self.download_queue = queue.Queue()
 
-        self.next_lock = threading.Lock()
-        self.next_signal = 0
-        self.pause_lock = threading.Lock()
-        self.pause_signal = 0
+        self.next_event = threading.Event()
+        self.pause_event = threading.Event()
 
         threading.Thread(target=self._download_worker, daemon=True).start()
         threading.Thread(target=self._music_worker, daemon=True).start()
@@ -62,23 +62,28 @@ class Controller:
 
     def _download_worker(self):
         while (True):
-            try: 
+            try:
                 url = self.download_queue.get()
 
                 download_opts = self.download_opts
-                download_opts["outtmpl"] = os.path.join(self.music_dir, "%(title)s")
+                download_opts["outtmpl"] = os.path.join(
+                    self.music_dir, "%(title)s")
 
                 with yt_dlp.YoutubeDL(download_opts) as audio:
                     info_dict = audio.extract_info(url, download=True)
 
-                    title = info_dict["title"]
+                    thumbnail = info_dict.get("thumbnail", "")
+                    title = info_dict.get("title", "")
                     format = "wav"  # hardcoded for now
-
                     prepared_filename = audio.prepare_filename(info_dict)
                     base_filename = os.path.splitext(prepared_filename)[0]
                     file = f"{base_filename}.{format}"
-                    song = Song(title, file, format)
+                    author = info_dict.get("channel", "No Author")
+
+                    song = Song(title=title, author=author, file=file, format=format, thumbnail=thumbnail)
+
                     self.song_queue.put(song)
+                    self.song_list.append(song)
             except Exception as e:
                 print("Unable to download the song:", e)
             self.download_queue.task_done()
@@ -86,41 +91,41 @@ class Controller:
     # Song playback thread function
     def _music_worker(self):
         while (True):
-            try:
-                item = self.song_queue.get()
-                path = item.file
-                
-                with wave.open(path, 'rb') as wf:
-                    p = pyaudio.PyAudio()
+            song = self.song_queue.get()
+            path = song.file
 
-                    stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
-                                    channels=wf.getnchannels(),
-                                    rate=wf.getframerate(),
-                                    output=True)
+            self.play_song(path)
+            os.remove(path)
 
-                    while True:
-                        if self.next_signal:
-                            self.next_lock.acquire()
-                            self.next_signal = 0
-                            self.next_lock.release()
-                            break
+            if song in self.song_list:
+                self.song_list.remove(song)
+            self.song_queue.task_done()
 
-                        if self.pause_signal:
-                            continue
+    def play_song(self, path):
+        try:
+            with wave.open(path, 'rb') as wf:
+                p = pyaudio.PyAudio()
+                stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                                channels=wf.getnchannels(),
+                                rate=wf.getframerate(),
+                                output=True)
+                while True:
+                    if self.next_event.is_set():
+                        self.next_event.clear()
+                        break
 
+                    if not self.pause_event.is_set():
                         data = wf.readframes(CHUNK)
                         if len(data) == 0:
                             break
                         stream.write(data)
-
+                    else:
+                        self.pause_event.wait(0.1)
                 stream.close()
                 p.terminate()
 
-                os.remove(path)
-            except Exception as e:
-                print("Unable to play song:", e)
-
-            self.song_queue.task_done()
+        except Exception as e:
+            print("Unable to play song:", e)
 
     def remove(self, song):
         print(f"Trying to remove {song.file}")
@@ -135,12 +140,7 @@ class Controller:
 
     # Change to the next song by finishing the current song on the worker thread
     def next(self):
-        if self.next_signal == 1:
-            return
-
-        self.next_lock.acquire()
-        self.next_signal = 1
-        self.next_lock.release()
+        self.next_event.set()
 
     # Stop playback of music by deleting all items off the song queue
     def stop(self):
@@ -162,50 +162,12 @@ class Controller:
 
     # Pause music playback by setting pause_signal to 1
     def pause(self):
-        # Already paused
-        self.pause_lock.acquire()
-        self.pause_signal = 0 if self.pause_signal else 1
-        self.pause_lock.release()
+        if self.pause_event.is_set():
+            self.pause_event.clear()
+            return
+        self.pause_event.set()
 
     # Stops queue and writes to cache
     def quit(self):
         print("Quitting...")
         self.stop()
-
-
-async def handler(ws):
-    controller = Controller(music_dir="music")
-    while True:
-        try:
-            message = await ws.recv()
-        except websockets.ConnectionClosedOK:
-            break
-            
-        args = message.split()
-
-        if args[0] == "play":
-            if (len(args) == 2):
-                url = args[1]
-                controller.play(url)
-
-        if args[0] == "next":
-            controller.next()
-
-        if args[0] == "stop":
-            controller.stop()
-
-        if args[0] == "pause":
-            controller.pause()
-
-        if args[0] == "quit":
-            controller.quit()
-            break
-    controller.song_queue.join()
-
-
-async def main():
-    async with serve(handler, "", config.PORT, ping_interval=10, ping_timeout=20):
-        await asyncio.get_running_loop().create_future()
-
-if __name__ == "__main__":
-    asyncio.run(main())

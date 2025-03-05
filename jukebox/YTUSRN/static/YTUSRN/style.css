@@ -16,8 +16,6 @@ body {
 
 .centered-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
   width: 100%;
   height: 100%;
 }
@@ -47,8 +45,8 @@ form {
 
 .row-container {
   display: flex;
+  flex-grow: 1;
   flex-direction: row;
-  justify-content: space-evenly;
   gap: 20px;
   padding: 20px;
 }
@@ -113,4 +111,72 @@ button:hover {
 
 .control-icon:hover {
   color: #e6b800;
+}
+
+.url-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 20px;
+  padding: 20px;
+}
+
+.song-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 4;
+  gap: 20px;
+  padding: 20px;
+}
+
+.queue-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 20px;
+  padding: 20px;
+}
+
+.control-container {
+  justify-self: center;
+  align-self: center;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+#song-thumbnail {
+  height: 400px;
+  width: 400px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 6px;
+}
+
+#queue-thumbnail {
+  height: 50px;
+  width: 50px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 6px;
+}
+
+.queue-song-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 20px;
+  gap: 20px;
+}
+
+.queue-song-info-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 10px;
 }
