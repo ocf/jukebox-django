@@ -124,6 +124,7 @@ button:hover {
 .song-container {
   display: flex;
   flex-direction: column;
+  align-items: center;
   flex-grow: 4;
   gap: 20px;
   padding: 20px;
@@ -149,9 +150,19 @@ button:hover {
 }
 
 #song-thumbnail {
+  display: none;
   height: 400px;
   width: 400px;
   object-fit: cover;
+  object-position: center;
+  border-radius: 6px;
+}
+
+#default-thumbnail {
+  display: none;
+  height: 400px;
+  width: 400px;
+  object-fit: scale-down;
   object-position: center;
   border-radius: 6px;
 }
