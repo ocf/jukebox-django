@@ -1,14 +1,11 @@
 import os.path
-import pyaudio
-import wave
 import threading
 import queue
 import signal
 import sys
 import yt_dlp
-
-CHUNK = 1024
-
+from just_playback import Playback
+import time
 
 class Song:
     def __init__(self, title, author, file, format, thumbnail, url):
@@ -49,10 +46,8 @@ class Controller:
         self.download_queue = queue.Queue()
         self.download_list = []  # List of urls
 
-        self.next_event = threading.Event()
-        self.pause_event = threading.Event()
-
         self.volume = 1.0
+        self.playback = Playback()
 
         threading.Thread(target=self._download_worker, daemon=True).start()
         threading.Thread(target=self._music_worker, daemon=True).start()
@@ -106,46 +101,31 @@ class Controller:
         except Exception as e:
             print("Unable to download the song:", e)
 
-    # Song playback thread function
+    # Feeds songs to song thread
 
     def _music_worker(self):
         while (True):
-            # Get song and play it
-            song = self.song_queue.get()
-            path = song.file
-            self.play_song(path)
+            if not self.playback.active:
+                song = self.song_queue.get()
+                path = song.file
+                self.play_song(path)
+                
+                while self.playback.active:
+                    time.sleep(0.1)
 
-            if song in self.song_list:
-                self.song_list.remove(song)
+                if song in self.song_list:
+                    self.song_list.remove(song)
 
-            # If the song is not queued to be played or downloaded in the future, remove it
-            if song.url not in self.download_list and song not in self.song_list:
-                os.remove(path)
-            self.song_queue.task_done()
+                # If the song is not queued to be played or downloaded in the future, remove it
+                if song.url not in self.download_list and song not in self.song_list:
+                    os.remove(path)
+
+                self.song_queue.task_done()
 
     def play_song(self, path):
         try:
-            with wave.open(path, 'rb') as wf:
-                p = pyaudio.PyAudio()
-                stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
-                                channels=wf.getnchannels(),
-                                rate=wf.getframerate(),
-                                output=True)
-                while True:
-                    if self.next_event.is_set():
-                        self.next_event.clear()
-                        break
-
-                    if not self.pause_event.is_set():
-                        data = wf.readframes(CHUNK)
-                        if len(data) == 0:
-                            break
-                        
-                        stream.write(data)
-                    else:
-                        self.pause_event.wait(0.1)
-                stream.close()
-                p.terminate()
+            self.playback.load_file(path)
+            self.playback.play()
 
         except Exception as e:
             print("Unable to play song:", e)
@@ -157,7 +137,7 @@ class Controller:
 
     # Change to the next song by finishing the current song on the worker thread
     def next(self):
-        self.next_event.set()
+        self.playback.stop()
 
     # Stop playback of music by deleting all items off the song queue
     def stop(self):
@@ -168,7 +148,7 @@ class Controller:
         with self.song_queue.mutex:
             self.song_queue.queue.clear()
             self.song_list.clear()
-        self.next()
+        self.playback.stop()
 
         # Delete any files in the music directory
         for filename in os.listdir(self.music_dir):
@@ -181,10 +161,10 @@ class Controller:
 
     # Pause music playback by setting pause_signal to 1
     def pause(self):
-        if self.pause_event.is_set():
-            self.pause_event.clear()
+        if self.playback.paused:
+            self.playback.resume()
             return
-        self.pause_event.set()
+        self.playback.pause()
 
     # Stops queue and writes to cache
     def quit(self):
@@ -192,7 +172,7 @@ class Controller:
         self.stop()
 
     def is_paused(self):
-        return self.pause_event.is_set()
+        return self.playback.paused
 
     def set_volume(self, new_volume):
         self.volume = max(0.0, min(1.0, new_volume))
