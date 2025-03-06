@@ -6,13 +6,11 @@ import asyncio
 from websockets.asyncio.server import serve
 
 controller = Controller(music_dir="music")
-
-
 async def send_packet(ws, type, payload={}):
     packet = json.dumps({"type": type, "payload": payload})
     await ws.send(packet)
 
-
+# Sends websocket packets to web interface
 async def producer(ws, controller):
     while True:
         # Now playing song
@@ -59,14 +57,13 @@ async def consumer(ws, controller):
             controller.quit()
             break
 
-
 async def handler(ws):
     global controller
 
     producer_task = asyncio.create_task(producer(ws, controller))
     consumer_task = asyncio.create_task(consumer(ws, controller))
     try:
-        await asyncio.gather(consumer_task)
+        await asyncio.gather(producer_task, consumer_task)
     finally:
         producer_task.cancel()
         consumer_task.cancel()
