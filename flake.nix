@@ -18,7 +18,7 @@
           yt-dlp
           jsonpickle
           wheel
-          pyaudio
+          just-playback
           websockets
           aioconsole
           channels
@@ -106,7 +106,7 @@
               yt-dlp
               jsonpickle
               wheel
-              pyaudio
+              just-playback
               websockets
               aioconsole
               channels

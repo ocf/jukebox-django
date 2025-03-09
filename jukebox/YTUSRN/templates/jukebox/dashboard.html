@@ -35,11 +35,15 @@
         <div class="song-info">
           <h3 id="song-title">Nothing Playing</h3>
           <h3 id="song-author">No Author</h3>
-          <img id="song-thumbnail" src="{% static 'YTUSRN/default_music.webp' %}" alt="Music Thumbnail" />
+          <img id="song-thumbnail" alt="Music Thumbnail" />
+          <img id="default-thumbnail" src="{% static 'YTUSRN/default_music.webp' %}" alt="Music Thumbnail" />
         </div>
         <div class="control-container outlined">
           <div id="pause-button" class="control-icon">
             {% icon 'pause' extra_classes='fa-xl'%}
+          </div>
+          <div id="play-button" class="control-icon">
+            {% icon 'play' extra_classes='fa-xl'%}
           </div>
           <div id="next-button" class="control-icon">
             {% icon 'next' extra_classes='fa-xl'%}

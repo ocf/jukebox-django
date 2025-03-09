@@ -6,7 +6,6 @@ import asyncio
 from websockets.asyncio.server import serve
 
 controller = Controller(music_dir="music")
-
 async def send_packet(ws, type, payload={}):
     packet = json.dumps({"type": type, "payload": payload})
     await ws.send(packet)
@@ -18,11 +17,14 @@ async def producer(ws, controller):
         if len(controller.song_list) >= 1:
             song = controller.song_list[0]
             await send_packet(ws, "now_playing", {"title": song.title, "author": song.author, "thumbnail": song.thumbnail})
+        else:
+            await send_packet(ws, "now_playing", {"title": "Nothing Playing", "author": "No Author", "thumbnail": ""})
 
         # Queued songs
         songs = []
         for song in controller.song_list:
-            songs.append({"title": song.title, "author": song.author, "thumbnail": song.thumbnail})
+            songs.append({"title": song.title, "author": song.author,
+                        "thumbnail": song.thumbnail})
         await send_packet(ws, "songs", {"songs": songs})
         await asyncio.sleep(1)
 
@@ -40,6 +42,10 @@ async def consumer(ws, controller):
 
         elif packet_type == "pause":
             controller.pause()
+            if controller.is_paused():
+                await send_packet(ws, "play_pause", {"status": "pause"})
+            else:
+                await send_packet(ws, "play_pause", {"status": "play"})
 
         elif packet_type == "next":
             controller.next()

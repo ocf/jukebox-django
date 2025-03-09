@@ -48,6 +48,7 @@ DJANGO_ICONS = {
     "ICONS": {
         "record": {"name": "fa-solid fa-record-vinyl"},
         "pause": {"name": "fa-solid fa-pause"},
+        "play": {"name": "fa-solid fa-play"},
         "next": {"name": "fa-solid fa-forward-step"},
     },
 }
