@@ -46,7 +46,6 @@ class Controller:
         self.download_queue = queue.Queue()
         self.download_list = []  # List of urls
 
-        self.volume = 1.0
         self.playback = Playback()
 
         threading.Thread(target=self._download_worker, daemon=True).start()
@@ -175,4 +174,8 @@ class Controller:
         return self.playback.paused
 
     def set_volume(self, new_volume):
-        self.volume = max(0.0, min(1.0, new_volume))
+        new_volume = max(0.0, min(1.0, new_volume))
+        self.playback.set_volume(new_volume)
+
+    def get_volume(self):
+        return self.playback.volume

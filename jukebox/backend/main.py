@@ -56,6 +56,13 @@ async def consumer(ws, controller):
         elif packet_type == "quit":
             controller.quit()
             break
+        
+        elif packet_type == "volume":
+            volume = payload.get("volume")
+            if volume == None:
+                continue
+            controller.set_volume(volume)
+            await send_packet(ws, "volume", {"volume": controller.get_volume()})
 
 async def handler(ws):
     global controller

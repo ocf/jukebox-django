@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const playButton = document.querySelector("#play-button");
   playButton.style.display = "none";
   const nextButton = document.querySelector("#next-button");
+  const volumeSlider = document.querySelector("#volume-slider");
 
   const songTitle = document.querySelector("#song-title");
   const songAuthor = document.querySelector("#song-author");
@@ -41,6 +42,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   nextButton.addEventListener("click", () => {
     sendPacket("next");
+  });
+
+  volumeSlider.addEventListener("change", () => {
+    const volume = (volumeSlider.value / 100)
+    sendPacket("volume", { volume: volume });
   });
 
   socket.onerror = (error) => {
@@ -93,6 +99,9 @@ document.addEventListener("DOMContentLoaded", () => {
           pauseButton.style.display = "none";
           playButton.style.display = "block";
         }
+      } else if (response.type === "volume") {
+        const volume = response.payload.volume;
+        volumeSlider.value = volume*100;
       }
     } catch (error) {
       console.error("Error parsing message:", error);

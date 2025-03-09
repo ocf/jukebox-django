@@ -31,22 +31,33 @@
         </form>
       </div>
       <div class="outlined song-container">
-        <h2>Now Playing</h2>
         <div class="song-info">
-          <h3 id="song-title">Nothing Playing</h3>
-          <h3 id="song-author">No Author</h3>
           <img id="song-thumbnail" alt="Music Thumbnail" />
-          <img id="default-thumbnail" src="{% static 'YTUSRN/default_music.webp' %}" alt="Music Thumbnail" />
-        </div>
-        <div class="control-container outlined">
-          <div id="pause-button" class="control-icon">
-            {% icon 'pause' extra_classes='fa-xl'%}
-          </div>
-          <div id="play-button" class="control-icon">
-            {% icon 'play' extra_classes='fa-xl'%}
-          </div>
-          <div id="next-button" class="control-icon">
-            {% icon 'next' extra_classes='fa-xl'%}
+          <img
+            id="default-thumbnail"
+            src="{% static 'YTUSRN/default_music.webp' %}"
+            alt="Music Thumbnail"
+          />
+          <div id="song-title">Nothing Playing</div>
+          <div id="song-author">No Author</div>
+          <div class="control-container">
+            <div class="button-control-container outlined">
+              <div id="pause-button" class="control-icon">
+                {% icon 'pause' extra_classes='fa-xl'%}
+              </div>
+              <div id="play-button" class="control-icon">
+                {% icon 'play' extra_classes='fa-xl'%}
+              </div>
+              <div id="next-button" class="control-icon">
+                {% icon 'next' extra_classes='fa-xl'%}
+              </div>
+            </div>
+            <div class="button-control-container outlined">
+              <div class="control-icon">
+                {% icon 'volume' extra_classes='fa-xl'%}
+              </div>
+              <input id="volume-slider" type="range" min="0" max="100" />
+            </div>
           </div>
         </div>
       </div>
