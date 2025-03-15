@@ -177,5 +177,19 @@ class Controller:
         new_volume = max(0.0, min(1.0, new_volume))
         self.playback.set_volume(new_volume)
 
+    def get_active(self):
+        return self.playback.active
+
     def get_volume(self):
         return self.playback.volume
+    
+    def get_duration(self):
+        return self.playback.duration
+    
+    def get_curr_pos(self):
+        return self.playback.curr_pos
+
+    def set_curr_pos(self, new_pos):
+        duration = self.get_duration()
+        new_pos = min(max(0, new_pos), duration)
+        self.playback.seek(new_pos)

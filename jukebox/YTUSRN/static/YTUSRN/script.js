@@ -20,6 +20,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const songAuthor = document.querySelector("#song-author");
   const songThumbnail = document.querySelector("#song-thumbnail");
   const defaultThumbnail = document.querySelector("#default-thumbnail");
+  const startTime = document.querySelector("#start-time");
+  const endTime = document.querySelector("#end-time");
+  const timelineSlider = document.querySelector("#timeline-slider");
 
   const queue = document.querySelector("#queue");
 
@@ -48,6 +51,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const volume = (volumeSlider.value / 100)
     sendPacket("volume", { volume: volume });
   });
+
+  timelineSlider.addEventListener("change", () => {
+    const newPos = (timelineSlider.value / 100)
+    sendPacket("time", { new_pos: newPos });
+  })
 
   socket.onerror = (error) => {
     console.error("Socket errror:", error);
@@ -102,6 +110,21 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (response.type === "volume") {
         const volume = response.payload.volume;
         volumeSlider.value = volume*100;
+      } else if (response.type === "time") {
+        const duration = response.payload.duration;
+        const currPos = response.payload.curr_pos;
+
+        console.log(duration, currPos);
+        
+        var start = new Date(0);
+        start.setSeconds(currPos);
+        startTime.innerHTML = start.toISOString().substring(14, 19);
+
+        var end = new Date(0);
+        end.setSeconds(duration);
+        endTime.innerHTML = end.toISOString().substring(14, 19);
+
+        timelineSlider.value = (currPos * 100 / duration);
       }
     } catch (error) {
       console.error("Error parsing message:", error);
