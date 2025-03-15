@@ -7,7 +7,6 @@ from websockets.asyncio.server import serve
 
 controller = Controller(music_dir="music")
 
-
 async def send_packet(ws, type, payload={}):
     packet = json.dumps({"type": type, "payload": payload})
     await ws.send(packet)
@@ -63,7 +62,7 @@ async def producer(ws, controller):
 
         # Lyrics
         await send_lyric_packet(ws, controller)
-
+        
         await asyncio.sleep(1)
 
 

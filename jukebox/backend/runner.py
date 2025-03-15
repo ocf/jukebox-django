@@ -77,7 +77,7 @@ class Controller:
             if url in self.download_list:
                 self.download_list.remove(url)
             self.download_queue.task_done()
-    
+            
     def queue_entry(self, entry, audio):
         thumbnail = entry.get("thumbnail", "")
         title = entry.get("title", "")
@@ -107,7 +107,6 @@ class Controller:
 
             with yt_dlp.YoutubeDL(download_opts) as audio:
                 info_dict = audio.extract_info(url, download=True)
-
                 if "entries" in info_dict:
                     for entry in info_dict["entries"]:
                         if not entry:
@@ -129,14 +128,13 @@ class Controller:
                 
                 while self.playback.active:
                     time.sleep(0.1)
-
+                    
                 if song in self.song_list:
                     self.song_list.remove(song)
 
                 # If the song is not queued to be played or downloaded in the future, remove it
                 if song.url not in self.download_list and song not in self.song_list:
                     os.remove(path)
-
                 self.song_queue.task_done()
 
     def play_song(self, path):
@@ -227,4 +225,3 @@ class Controller:
                 index = i
             lyrics.append(lyric["line"])
         return { "lyrics": lyrics, "index": index }
-        

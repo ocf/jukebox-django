@@ -227,6 +227,15 @@ button:hover {
   font-weight: lighter;
 }
 
+#default-thumbnail {
+  display: none;
+  height: 400px;
+  width: 400px;
+  object-fit: scale-down;
+  object-position: center;
+  border-radius: 6px;
+}
+
 #queue-thumbnail {
   height: 50px;
   width: 50px;
