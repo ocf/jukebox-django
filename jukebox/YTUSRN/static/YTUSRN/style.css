@@ -119,6 +119,7 @@ button:hover {
   flex-grow: 1;
   gap: 20px;
   padding: 20px;
+  width: 400px;
 }
 
 .song-container {
@@ -137,6 +138,24 @@ button:hover {
   flex-grow: 1;
   gap: 20px;
   padding: 20px;
+  width: 400px;
+}
+
+#lyrics-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 20px;
+  padding: 20px;
+  width: 400px;
+  overflow: auto;
+}
+
+#active-lyric {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-weight: bolder;
+  font-size: 24px;
 }
 
 .control-container {

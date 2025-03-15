@@ -16,20 +16,6 @@
   </head>
   <body>
     <div class="row-container">
-      <div class="outlined url-container">
-        <h2>Submit URL</h2>
-        <form method="POST">
-          {% csrf_token %}
-          <input
-            type="url"
-            name="url"
-            placeholder="Enter URL"
-            id="url-input"
-            required
-          />
-          <button type="submit" id="url-button">Submit</button>
-        </form>
-      </div>
       <div class="outlined song-container">
         <div class="song-info">
           <img id="song-thumbnail" alt="Music Thumbnail" />
@@ -68,9 +54,29 @@
           </div>
         </div>
       </div>
-      <div class="outlined queue-container">
-        <h2>Queue</h2>
-        <div class="col-container" id="queue"></div>
+      <div class="outlined col-container">
+        <h2>Lyrics</h2>
+        <div id="lyrics-container"></div>
+      </div>
+      <div class="outlined col-container">
+        <div class="url-container">
+          <h2>Submit URL</h2>
+          <form method="POST">
+            {% csrf_token %}
+            <input
+              type="url"
+              name="url"
+              placeholder="Enter URL"
+              id="url-input"
+              required
+            />
+            <button type="submit" id="url-button">Submit</button>
+          </form>
+        </div>
+        <div class="queue-container">
+          <h2>Queue</h2>
+          <div class="col-container" id="queue"></div>
+        </div>
       </div>
     </div>
     <script src="{% static 'YTUSRN/script.js' %}"></script>

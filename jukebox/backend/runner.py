@@ -5,16 +5,19 @@ import signal
 import sys
 import yt_dlp
 from just_playback import Playback
+from lyrics import Lyrics
 import time
 
 class Song:
-    def __init__(self, title, author, file, format, thumbnail, url):
+    def __init__(self, title, author, album, file, format, thumbnail, url):
         self.title = title
         self.author = author
+        self.album = album
         self.file = file
         self.format = format
         self.thumbnail = thumbnail
         self.url = url
+        self.lyrics = None
 
     # Compare only based on file location
     def __eq__(self, other):
@@ -47,6 +50,7 @@ class Controller:
         self.download_list = []  # List of urls
 
         self.playback = Playback()
+        self.lyrics = Lyrics()
 
         threading.Thread(target=self._download_worker, daemon=True).start()
         threading.Thread(target=self._music_worker, daemon=True).start()
@@ -81,11 +85,15 @@ class Controller:
         prepared_filename = audio.prepare_filename(entry)
         base_filename = os.path.splitext(prepared_filename)[0]
         file = f"{base_filename}.{format}"
-        author = entry.get("channel", "No Author")
+        author = entry.get("channel", "")
+        album = entry.get("album", "")
         url = entry.get("url", "")
 
-        song = Song(title=title, author=author, file=file,
+        song = Song(title=title, author=author, album=album, file=file,
                     format=format, thumbnail=thumbnail, url=url)
+        
+        song.lyrics = self.lyrics.get(song)
+        print(song.lyrics)
 
         # Append the downloaded song to the song queue/list
         self.song_queue.put(song)
@@ -104,7 +112,6 @@ class Controller:
                     for entry in info_dict["entries"]:
                         if not entry:
                             continue
-                        print(entry)
                         self.queue_entry(entry, audio)
                 else:
                     self.queue_entry(info_dict, audio)
@@ -204,3 +211,20 @@ class Controller:
         duration = self.get_duration()
         new_pos = min(max(0, new_pos), duration)
         self.playback.seek(new_pos)
+    
+    def get_lyrics(self):
+        if len(self.song_list) == 0:
+            return []
+
+        curr_pos = self.get_curr_pos()
+        song = self.song_list[0]
+        lyrics = []
+        
+        index = None
+        for i in range(len(song.lyrics)):
+            lyric = song.lyrics[i]
+            if (lyric["timestamp"] and lyric["timestamp"] < curr_pos):
+                index = i
+            lyrics.append(lyric["line"])
+        return { "lyrics": lyrics, "index": index }
+        

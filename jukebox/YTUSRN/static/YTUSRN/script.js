@@ -24,6 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const endTime = document.querySelector("#end-time");
   const timelineSlider = document.querySelector("#timeline-slider");
 
+  const lyricsContainer = document.querySelector("#lyrics-container");
+
   const queue = document.querySelector("#queue");
 
   urlButton.addEventListener("click", (e) => {
@@ -48,14 +50,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   volumeSlider.addEventListener("change", () => {
-    const volume = (volumeSlider.value / 100)
+    const volume = volumeSlider.value / 100;
     sendPacket("volume", { volume: volume });
   });
 
   timelineSlider.addEventListener("change", () => {
-    const newPos = (timelineSlider.value / 100)
+    const newPos = timelineSlider.value / 100;
     sendPacket("time", { new_pos: newPos });
-  })
+  });
 
   socket.onerror = (error) => {
     console.error("Socket errror:", error);
@@ -109,13 +111,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       } else if (response.type === "volume") {
         const volume = response.payload.volume;
-        volumeSlider.value = volume*100;
+        volumeSlider.value = volume * 100;
       } else if (response.type === "time") {
         const duration = response.payload.duration;
         const currPos = response.payload.curr_pos;
 
         console.log(duration, currPos);
-        
+
         var start = new Date(0);
         start.setSeconds(currPos);
         startTime.innerHTML = start.toISOString().substring(14, 19);
@@ -124,7 +126,22 @@ document.addEventListener("DOMContentLoaded", () => {
         end.setSeconds(duration);
         endTime.innerHTML = end.toISOString().substring(14, 19);
 
-        timelineSlider.value = (currPos * 100 / duration);
+        timelineSlider.value = (currPos * 100) / duration;
+      } else if (response.type === "lyrics") {
+        const index = response.payload.index;
+        const lyrics = response.payload.lyrics;
+
+        lyricsContainer.innerHTML = lyrics
+          .map((lyric, i) => {
+            if (i === index) {
+              return `<div id="active-lyric">${lyric}</div>`;
+            } else {
+              return `<div>${lyric}</div>`;
+            }
+          })
+          .join("");
+
+        document.querySelector("#active-lyric").scrollIntoView();
       }
     } catch (error) {
       console.error("Error parsing message:", error);

@@ -24,6 +24,10 @@ async def send_time_packet(ws, controller):
     curr_pos = controller.get_curr_pos()
     await send_packet(ws, "time", {"duration": duration, "curr_pos": curr_pos})
 
+async def send_lyric_packet(ws, controller):
+    lyrics = controller.get_lyrics()
+    await send_packet(ws, "lyrics", lyrics)
+
 
 async def send_nowplaying_packet(ws, controller):
     active = controller.get_active()
@@ -56,6 +60,9 @@ async def producer(ws, controller):
 
         # Current play time information
         await send_time_packet(ws, controller)
+
+        # Lyrics
+        await send_lyric_packet(ws, controller)
 
         await asyncio.sleep(1)
 
