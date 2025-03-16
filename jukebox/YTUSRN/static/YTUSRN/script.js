@@ -14,11 +14,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const playButton = document.querySelector("#play-button");
   playButton.style.display = "none";
   const nextButton = document.querySelector("#next-button");
+  const volumeSlider = document.querySelector("#volume-slider");
 
   const songTitle = document.querySelector("#song-title");
   const songAuthor = document.querySelector("#song-author");
   const songThumbnail = document.querySelector("#song-thumbnail");
   const defaultThumbnail = document.querySelector("#default-thumbnail");
+  const startTime = document.querySelector("#start-time");
+  const endTime = document.querySelector("#end-time");
+  const timelineSlider = document.querySelector("#timeline-slider");
+
+  const lyricsContainer = document.querySelector("#lyrics-container");
 
   const queue = document.querySelector("#queue");
 
@@ -41,6 +47,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   nextButton.addEventListener("click", () => {
     sendPacket("next");
+  });
+
+  volumeSlider.addEventListener("change", () => {
+    const volume = volumeSlider.value / 100;
+    sendPacket("volume", { volume: volume });
+  });
+
+  timelineSlider.addEventListener("change", () => {
+    const newPos = timelineSlider.value / 100;
+    sendPacket("time", { new_pos: newPos });
   });
 
   socket.onerror = (error) => {
@@ -93,6 +109,39 @@ document.addEventListener("DOMContentLoaded", () => {
           pauseButton.style.display = "none";
           playButton.style.display = "block";
         }
+      } else if (response.type === "volume") {
+        const volume = response.payload.volume;
+        volumeSlider.value = volume * 100;
+      } else if (response.type === "time") {
+        const duration = response.payload.duration;
+        const currPos = response.payload.curr_pos;
+
+        console.log(duration, currPos);
+
+        var start = new Date(0);
+        start.setSeconds(currPos);
+        startTime.innerHTML = start.toISOString().substring(14, 19);
+
+        var end = new Date(0);
+        end.setSeconds(duration);
+        endTime.innerHTML = end.toISOString().substring(14, 19);
+
+        timelineSlider.value = (currPos * 100) / duration;
+      } else if (response.type === "lyrics") {
+        const index = response.payload.index;
+        const lyrics = response.payload.lyrics;
+
+        lyricsContainer.innerHTML = lyrics
+          .map((lyric, i) => {
+            if (i === index) {
+              return `<div id="active-lyric">${lyric}</div>`;
+            } else {
+              return `<div>${lyric}</div>`;
+            }
+          })
+          .join("");
+
+        document.querySelector("#active-lyric").scrollIntoView();
       }
     } catch (error) {
       console.error("Error parsing message:", error);

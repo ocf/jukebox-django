@@ -6,26 +6,63 @@ import asyncio
 from websockets.asyncio.server import serve
 
 controller = Controller(music_dir="music")
+
 async def send_packet(ws, type, payload={}):
     packet = json.dumps({"type": type, "payload": payload})
     await ws.send(packet)
 
+
+async def send_time_packet(ws, controller):
+    active = controller.get_active()
+
+    if (not active):
+        await send_packet(ws, "time", {"duration": 1, "curr_pos": 0})
+        return
+
+    duration = controller.get_duration()
+    curr_pos = controller.get_curr_pos()
+    await send_packet(ws, "time", {"duration": duration, "curr_pos": curr_pos})
+
+async def send_lyric_packet(ws, controller):
+    lyrics = controller.get_lyrics()
+    await send_packet(ws, "lyrics", lyrics)
+
+
+async def send_nowplaying_packet(ws, controller):
+    active = controller.get_active()
+
+    if not active or len(controller.song_list) == 0:
+        await send_packet(ws, "now_playing", {"title": "Nothing Playing", "author": "No Author", "thumbnail": ""})
+        return
+
+    song = controller.song_list[0]
+    await send_packet(ws, "now_playing", {"title": song.title, "author": song.author, "thumbnail": song.thumbnail})
+
+async def send_queue_packet(ws, controller):
+    songs = []
+    for song in controller.song_list:
+        songs.append({"title": song.title, "author": song.author,
+                        "thumbnail": song.thumbnail})
+    await send_packet(ws, "songs", {"songs": songs})
+        
+
 # Sends websocket packets to web interface
+
+
 async def producer(ws, controller):
     while True:
         # Now playing song
-        if len(controller.song_list) >= 1:
-            song = controller.song_list[0]
-            await send_packet(ws, "now_playing", {"title": song.title, "author": song.author, "thumbnail": song.thumbnail})
-        else:
-            await send_packet(ws, "now_playing", {"title": "Nothing Playing", "author": "No Author", "thumbnail": ""})
+        await send_nowplaying_packet(ws, controller)
 
         # Queued songs
-        songs = []
-        for song in controller.song_list:
-            songs.append({"title": song.title, "author": song.author,
-                        "thumbnail": song.thumbnail})
-        await send_packet(ws, "songs", {"songs": songs})
+        await send_queue_packet(ws, controller)
+
+        # Current play time information
+        await send_time_packet(ws, controller)
+
+        # Lyrics
+        await send_lyric_packet(ws, controller)
+        
         await asyncio.sleep(1)
 
 
@@ -56,6 +93,22 @@ async def consumer(ws, controller):
         elif packet_type == "quit":
             controller.quit()
             break
+
+        elif packet_type == "volume":
+            volume = payload.get("volume")
+            if volume == None:
+                continue
+            controller.set_volume(volume)
+            await send_packet(ws, "volume", {"volume": controller.get_volume()})
+        
+        elif packet_type == "time":
+            new_pos = payload.get("new_pos")
+            if new_pos == None:
+                continue
+            duration = controller.get_duration()
+            controller.set_curr_pos(duration * new_pos)
+            await send_time_packet(ws, controller)
+
 
 async def handler(ws):
     global controller

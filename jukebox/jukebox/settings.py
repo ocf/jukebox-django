@@ -50,6 +50,7 @@ DJANGO_ICONS = {
         "pause": {"name": "fa-solid fa-pause"},
         "play": {"name": "fa-solid fa-play"},
         "next": {"name": "fa-solid fa-forward-step"},
+        "volume": {"name": "fa-solid fa-volume-high"},
     },
 }
 

@@ -5,16 +5,19 @@ import signal
 import sys
 import yt_dlp
 from just_playback import Playback
+from lyrics import Lyrics
 import time
 
 class Song:
-    def __init__(self, title, author, file, format, thumbnail, url):
+    def __init__(self, title, author, album, file, format, thumbnail, url):
         self.title = title
         self.author = author
+        self.album = album
         self.file = file
         self.format = format
         self.thumbnail = thumbnail
         self.url = url
+        self.lyrics = None
 
     # Compare only based on file location
     def __eq__(self, other):
@@ -46,8 +49,8 @@ class Controller:
         self.download_queue = queue.Queue()
         self.download_list = []  # List of urls
 
-        self.volume = 1.0
         self.playback = Playback()
+        self.lyrics = Lyrics()
 
         threading.Thread(target=self._download_worker, daemon=True).start()
         threading.Thread(target=self._music_worker, daemon=True).start()
@@ -74,6 +77,27 @@ class Controller:
             if url in self.download_list:
                 self.download_list.remove(url)
             self.download_queue.task_done()
+            
+    def queue_entry(self, entry, audio):
+        thumbnail = entry.get("thumbnail", "")
+        title = entry.get("title", "")
+        format = "wav"  # hardcoded for now
+        prepared_filename = audio.prepare_filename(entry)
+        base_filename = os.path.splitext(prepared_filename)[0]
+        file = f"{base_filename}.{format}"
+        author = entry.get("channel", "")
+        album = entry.get("album", "")
+        url = entry.get("url", "")
+
+        song = Song(title=title, author=author, album=album, file=file,
+                    format=format, thumbnail=thumbnail, url=url)
+        
+        song.lyrics = self.lyrics.get(song)
+        print(song.lyrics)
+
+        # Append the downloaded song to the song queue/list
+        self.song_queue.put(song)
+        self.song_list.append(song)
 
     def download_song(self, url):
         try:
@@ -83,21 +107,13 @@ class Controller:
 
             with yt_dlp.YoutubeDL(download_opts) as audio:
                 info_dict = audio.extract_info(url, download=True)
-
-                thumbnail = info_dict.get("thumbnail", "")
-                title = info_dict.get("title", "")
-                format = "wav"  # hardcoded for now
-                prepared_filename = audio.prepare_filename(info_dict)
-                base_filename = os.path.splitext(prepared_filename)[0]
-                file = f"{base_filename}.{format}"
-                author = info_dict.get("channel", "No Author")
-
-                song = Song(title=title, author=author, file=file,
-                            format=format, thumbnail=thumbnail, url=url)
-
-                # Append the downloaded song to the song queue/list
-                self.song_queue.put(song)
-                self.song_list.append(song)
+                if "entries" in info_dict:
+                    for entry in info_dict["entries"]:
+                        if not entry:
+                            continue
+                        self.queue_entry(entry, audio)
+                else:
+                    self.queue_entry(info_dict, audio)
         except Exception as e:
             print("Unable to download the song:", e)
 
@@ -112,14 +128,13 @@ class Controller:
                 
                 while self.playback.active:
                     time.sleep(0.1)
-
+                    
                 if song in self.song_list:
                     self.song_list.remove(song)
 
                 # If the song is not queued to be played or downloaded in the future, remove it
                 if song.url not in self.download_list and song not in self.song_list:
                     os.remove(path)
-
                 self.song_queue.task_done()
 
     def play_song(self, path):
@@ -175,4 +190,38 @@ class Controller:
         return self.playback.paused
 
     def set_volume(self, new_volume):
-        self.volume = max(0.0, min(1.0, new_volume))
+        new_volume = max(0.0, min(1.0, new_volume))
+        self.playback.set_volume(new_volume)
+
+    def get_active(self):
+        return self.playback.active
+
+    def get_volume(self):
+        return self.playback.volume
+    
+    def get_duration(self):
+        return self.playback.duration
+    
+    def get_curr_pos(self):
+        return self.playback.curr_pos
+
+    def set_curr_pos(self, new_pos):
+        duration = self.get_duration()
+        new_pos = min(max(0, new_pos), duration)
+        self.playback.seek(new_pos)
+    
+    def get_lyrics(self):
+        if len(self.song_list) == 0:
+            return []
+
+        curr_pos = self.get_curr_pos()
+        song = self.song_list[0]
+        lyrics = []
+        
+        index = None
+        for i in range(len(song.lyrics)):
+            lyric = song.lyrics[i]
+            if (lyric["timestamp"] and lyric["timestamp"] < curr_pos):
+                index = i
+            lyrics.append(lyric["line"])
+        return { "lyrics": lyrics, "index": index }
