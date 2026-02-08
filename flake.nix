@@ -19,14 +19,11 @@
           jsonpickle
           wheel
           just-playback
-          websockets
-          aioconsole
           channels
           daphne
           pip
         ]);
 
-        # Create a custom derivation for the jukebox app
         jukebox-django = pkgs.stdenv.mkDerivation {
           pname = "jukebox-django";
           version = "0.1.0";
@@ -37,53 +34,26 @@
             pkgs.portaudio
           ];
 
-          # No build phase, just install the files
           dontBuild = true;
 
           installPhase = ''
             mkdir -p $out/share/jukebox-django
             cp -r . $out/share/jukebox-django
 
-            # Create a wrapper script to run the Django server
             mkdir -p $out/bin
-            cat > $out/bin/jukebox-django-server << EOF
+
+            # Single server script using Daphne (ASGI)
+            cat > $out/bin/jukebox-django << EOF
             #!/bin/sh
-            cd $out/share/jukebox-django/jukebox
-            ${pythonEnv}/bin/python manage.py runserver "\$@"
+            cd $out/share/jukebox-django
+            ${pythonEnv}/bin/daphne -b 0.0.0.0 -p "\''${1:-8000}" config.asgi:application
             EOF
 
-            # Create a wrapper script to run the backend
-            cat > $out/bin/jukebox-django-backend << EOF
-            #!/bin/sh
-            cd $out/share/jukebox-django/jukebox/backend
-            ${pythonEnv}/bin/python main.py "\$@"
-            EOF
-
-            # Create a setup script
-            cat > $out/bin/jukebox-django-setup << EOF
-            #!/bin/sh
-            if [ ! -d .venv ]; then
-              echo "Creating virtual environment..."
-              ${pythonEnv}/bin/python -m venv .venv
-              . .venv/bin/activate
-              pip install django-icons==24.4
-            else
-              . .venv/bin/activate
-            fi
-            EOF
-
-            chmod +x $out/bin/jukebox-django-server
-            chmod +x $out/bin/jukebox-django-backend
-            chmod +x $out/bin/jukebox-django-setup
+            chmod +x $out/bin/jukebox-django
           '';
 
-          # Ensure Python can find portaudio
           fixupPhase = ''
-            wrapProgram $out/bin/jukebox-django-server \
-              --prefix LD_LIBRARY_PATH : ${pkgs.portaudio}/lib \
-              --prefix PYTHONPATH : $PYTHONPATH
-
-            wrapProgram $out/bin/jukebox-django-backend \
+            wrapProgram $out/bin/jukebox-django \
               --prefix LD_LIBRARY_PATH : ${pkgs.portaudio}/lib \
               --prefix PYTHONPATH : $PYTHONPATH
           '';
@@ -107,8 +77,6 @@
               jsonpickle
               wheel
               just-playback
-              websockets
-              aioconsole
               channels
               daphne
               pip
@@ -118,11 +86,9 @@
           ];
 
           shellHook = ''
-            # Set up environment variables if needed
             export PYTHONPATH=$PWD:$PYTHONPATH
             export LD_LIBRARY_PATH=${pkgs.portaudio}/lib:$LD_LIBRARY_PATH
             
-            # Create a local virtual environment for pip packages
             if [ ! -d .venv ]; then
               echo "Creating virtual environment..."
               python -m venv .venv
@@ -132,11 +98,8 @@
               . .venv/bin/activate
             fi
             
-            # Note for users
-            echo "Nix development environment for jukebox-django activated!"
-            echo "Virtual environment is active with all dependencies installed."
-            echo "To run the backend server: cd jukebox/backend && python main.py"
-            echo "To run the Django server: cd jukebox && python manage.py runserver"
+            echo "Jukebox development environment ready!"
+            echo "Run: python manage.py runserver"
           '';
         };
       });

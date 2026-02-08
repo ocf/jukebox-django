@@ -1,25 +1,23 @@
-[tool.poetry]
+[project]
 name = "jukebox-django"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
-license = "GPLv3"
+authors = [
+    {name = "Your Name",email = "you@example.com"}
+]
 readme = "README.md"
-package-mode = false
-
-[tool.poetry.dependencies]
-python = "^3.10,<3.13"
-django = "^5.1.1"
-yt-dlp = "^2024.9.27"
-jsonpickle = "^3.3.0"
-wheel = "^0.44.0"
-websockets = "^13.1"
-aioconsole = "^0.8.0"
-django-icons = "^24.4"
-channels = {extras = ["daphne"], version = "^4.2.0"}
-just-playback = "^0.1.8"
+requires-python = ">=3.14"
+dependencies = [
+    "django (>=6.0.2,<7.0.0)",
+    "daphne (>=4.2.1,<5.0.0)",
+    "django-icons (>=26.1,<27.0)",
+    "channels (>=4.3.2,<5.0.0)",
+    "yt-dlp (>=2026.2.4,<2027.0.0)",
+    "just-playback (>=0.1.8,<0.2.0)",
+    "requests (>=2.32.5,<3.0.0)"
+]
 
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
