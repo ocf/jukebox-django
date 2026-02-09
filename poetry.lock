@@ -897,6 +897,7 @@ files = [
 
 [package.dependencies]
 cryptography = ">=45.0.7,<47"
+typing-extensions = {version = ">=4.9", markers = "python_version < \"3.13\" and python_version >= \"3.8\""}
 
 [package.extras]
 docs = ["sphinx (!=5.2.0,!=5.2.0.post0,!=7.2.5)", "sphinx_rtd_theme"]
@@ -1260,5 +1261,5 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.14"
-content-hash = "8707f07fa7ad952185ca49a86650bef9f9d861331fd89685a22da3ae657e835c"
+python-versions = ">=3.12"
+content-hash = "3f3467919dd14fed12e4c7748a11cafd92ac53acf90f552189c56b375646accc"
