@@ -21,20 +21,18 @@
 
         shellHook = ''
           poetry env use python3.12
-          
+
           if [ ! -d ".venv" ]; then
             echo "Initializing virtual environment..."
             poetry install
           fi
-
-          source .venv/bin/activate
 
           # Required for just-playback to find libportaudio
           export LD_LIBRARY_PATH="${pkgs.portaudio}/lib:$LD_LIBRARY_PATH"
           
           echo "System: ${system}"
           echo "Python: $(python --version)"
-          echo "Run: python manage.py runserver"
+          echo "Run: poetry run python manage.py runserver"
         '';
       };
     };
