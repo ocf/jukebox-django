@@ -62,11 +62,11 @@
               overlay
               (final: prev: {
                 # Fix for py-ubjson requiring setuptools at build time
-                py-ubjson = prev.py-ubjson.overridePythonAttrs (old: {
+                py-ubjson = prev.py-ubjson.overrideAttrs (old: {
                   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.setuptools ];
                 });
                 # Ensure just-playback finds portaudio
-                just-playback = prev.just-playback.overridePythonAttrs (old: {
+                just-playback = prev.just-playback.overrideAttrs (old: {
                   buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.portaudio ];
                 });
               })
