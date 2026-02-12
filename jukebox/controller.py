@@ -1,32 +1,16 @@
 import os.path
 import threading
 import queue
-import signal
-import sys
+import uuid
 import yt_dlp
 from just_playback import Playback
-from lyrics import Lyrics
+from .lyrics import Lyrics
+from .song import Song
 import time
 
-class Song:
-    def __init__(self, title, author, album, file, format, thumbnail, url):
-        self.title = title
-        self.author = author
-        self.album = album
-        self.file = file
-        self.format = format
-        self.thumbnail = thumbnail
-        self.url = url
-        self.lyrics = None
 
-    # Compare only based on file location
-    def __eq__(self, other):
-        return (self.file == other.file)
-
-# Class to Control videos
 class Controller:
     def __init__(self, music_dir="music"):
-
         self.download_opts = {
             "extract_audio": True,
             "format": "bestaudio",
@@ -38,16 +22,10 @@ class Controller:
             }],
         }
 
-        # Initialize Ctrl+C handler to close threads properly
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
-
-        # Songs that have been downloaded and are ready to play
         self.song_queue = queue.Queue()
-        self.song_list = []  # List of Song objects
-        # Songs that need to be downloaded
+        self.song_list = []
         self.download_queue = queue.Queue()
-        self.download_list = []  # List of urls
+        self.download_list = []
 
         self.playback = Playback()
         self.lyrics = Lyrics()
@@ -57,31 +35,26 @@ class Controller:
 
         self.music_dir = music_dir
         if not os.path.exists(music_dir):
-            print(f"Unable to find music directory {music_dir}, creating it.")
+            print(f"Creating music directory: {music_dir}")
             os.mkdir(self.music_dir)
 
-    def _signal_handler(self, sig, frame):
-        self.quit()
-        sys.exit(0)
-
     def _download_worker(self):
-        while (True):
+        while True:
             if self.download_queue.empty():
+                time.sleep(0.1)
                 continue
-            
-            # Get the next url and download it
+
             url = self.download_queue.get()
             self.download_song(url)
 
-            # Remove from download queue and list
             if url in self.download_list:
                 self.download_list.remove(url)
             self.download_queue.task_done()
-            
+
     def queue_entry(self, entry, audio):
         thumbnail = entry.get("thumbnail", "")
         title = entry.get("title", "")
-        format = "wav"  # hardcoded for now
+        format = "wav"
         prepared_filename = audio.prepare_filename(entry)
         base_filename = os.path.splitext(prepared_filename)[0]
         file = f"{base_filename}.{format}"
@@ -91,17 +64,15 @@ class Controller:
 
         song = Song(title=title, author=author, album=album, file=file,
                     format=format, thumbnail=thumbnail, url=url)
-        
-        song.lyrics = self.lyrics.get(song)
-        print(song.lyrics)
 
-        # Append the downloaded song to the song queue/list
+        song.lyrics = self.lyrics.get(song)
+
         self.song_queue.put(song)
         self.song_list.append(song)
 
     def download_song(self, url):
         try:
-            download_opts = self.download_opts
+            download_opts = self.download_opts.copy()
             download_opts["outtmpl"] = os.path.join(
                 self.music_dir, "%(title)s")
 
@@ -117,44 +88,43 @@ class Controller:
         except Exception as e:
             print("Unable to download the song:", e)
 
-    # Feeds songs to song thread
-
     def _music_worker(self):
-        while (True):
+        while True:
             if not self.playback.active:
                 song = self.song_queue.get()
                 path = song.file
                 self.play_song(path)
-                
+
                 while self.playback.active:
                     time.sleep(0.1)
-                    
+
                 if song in self.song_list:
                     self.song_list.remove(song)
 
-                # If the song is not queued to be played or downloaded in the future, remove it
-                if song.url not in self.download_list and song not in self.song_list:
-                    os.remove(path)
+                file_still_needed = any(s.file == path for s in self.song_list)
+                if not file_still_needed and song.url not in self.download_list:
+                    try:
+                        os.remove(path)
+                    except:
+                        pass
                 self.song_queue.task_done()
+            else:
+                time.sleep(0.1)
 
     def play_song(self, path):
         try:
             self.playback.load_file(path)
             self.playback.play()
-
         except Exception as e:
             print("Unable to play song:", e)
 
-    # Queues a url to be downloaded and played
     def play(self, url):
         self.download_queue.put(url)
         self.download_list.append(url)
 
-    # Change to the next song by finishing the current song on the worker thread
     def next(self):
         self.playback.stop()
 
-    # Stop playback of music by deleting all items off the song queue
     def stop(self):
         with self.download_queue.mutex:
             self.download_queue.queue.clear()
@@ -165,7 +135,6 @@ class Controller:
             self.song_list.clear()
         self.playback.stop()
 
-        # Delete any files in the music directory
         for filename in os.listdir(self.music_dir):
             filepath = os.path.join(self.music_dir, filename)
             try:
@@ -174,14 +143,12 @@ class Controller:
             except:
                 print(f"Unable to delete file {filepath}")
 
-    # Pause music playback by setting pause_signal to 1
     def pause(self):
         if self.playback.paused:
             self.playback.resume()
             return
         self.playback.pause()
 
-    # Stops queue and writes to cache
     def quit(self):
         print("Quitting...")
         self.stop()
@@ -198,10 +165,10 @@ class Controller:
 
     def get_volume(self):
         return self.playback.volume
-    
+
     def get_duration(self):
         return self.playback.duration
-    
+
     def get_curr_pos(self):
         return self.playback.curr_pos
 
@@ -209,19 +176,34 @@ class Controller:
         duration = self.get_duration()
         new_pos = min(max(0, new_pos), duration)
         self.playback.seek(new_pos)
-    
+
     def get_lyrics(self):
         if len(self.song_list) == 0:
-            return []
+            return {"lyrics": [], "index": None}
 
         curr_pos = self.get_curr_pos()
         song = self.song_list[0]
         lyrics = []
-        
+
+        if not song.lyrics:
+            return {"lyrics": [], "index": None}
+
         index = None
         for i in range(len(song.lyrics)):
             lyric = song.lyrics[i]
-            if (lyric["timestamp"] and lyric["timestamp"] < curr_pos):
+            if lyric["timestamp"] and lyric["timestamp"] < curr_pos:
                 index = i
             lyrics.append(lyric["line"])
-        return { "lyrics": lyrics, "index": index }
+        return {"lyrics": lyrics, "index": index}
+
+
+# Lazy singleton
+_controller = None
+
+
+def get_controller():
+    """Get the shared Controller instance, creating it on first access."""
+    global _controller
+    if _controller is None:
+        _controller = Controller(music_dir="music")
+    return _controller

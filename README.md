@@ -1,92 +1,67 @@
-# New Jukebox
+# Jukebox
 
-Jukebox rewrite with Django - currently newstaff project Fa24
+A Django-based music player for the OCF. Submit YouTube URLs to play music through the server.
 
-## Getting started
+## Getting Started
 
-### Option 1: Using Poetry (Standard method)
+### Option 1: Using Poetry
 
 Requirements:
-
 - Python 3.10-3.12
 - [Poetry](https://python-poetry.org/)
+- FFmpeg (for audio processing)
 
-Clone this repo and enter it:
-
-```
+```bash
 git clone https://github.com/ocf/jukebox-django
 cd jukebox-django
-```
-
-Install dependencies:
-
-```
 poetry install
+poetry run python manage.py runserver
 ```
 
-Activate the Poetry environment:
+Go to `http://127.0.0.1:8000/` to access the jukebox.
 
-```
-poetry shell
-```
-
-### Option 2: Using Nix (Recommended for NixOS deployments)
-
-This project includes Nix support for reproducible environments with all dependencies, including system libraries like PortAudio which PyAudio requires.
-
-Requirements:
-- Nix package manager (https://nixos.org/download.html)
-
-#### With flakes enabled:
+### Option 2: Using Nix
 
 ```bash
-# Development shell
 nix develop
-
-# Build the package
-nix build
-```
-
-The build process produces the following executables:
-
-- `result/bin/jukebox-django-server` - Run the Django web server
-- `result/bin/jukebox-django-backend` - Run the backend server
-- `result/bin/jukebox-django-setup` - Setup a virtual environment with missing packages
-
-#### Without flakes:
-
-```bash
-# Development shell
-nix-shell
-```
-
-The Nix configuration automatically creates a Python virtual environment (.venv) and installs all required packages, including those not available in nixpkgs.
-
-## Running the project
-
-#### Starting the Server
-
-Enter the `backend` directory, then run `main.py`:
-
-```
-cd backend/
-python3 main.py
-```
-
-#### Starting the Website
-
-Enter the `jukebox` directory, and run the project:
-
-```
-cd jukebox/
 python manage.py runserver
 ```
 
-Go to `http://127.0.0.1:8000/YTUSRN/` to access the website.
+Or build and run:
+
+```bash
+nix build
+./result/bin/jukebox-django
+```
+
+## Project Structure
+
+```
+jukebox-django/
+├── manage.py           # Django management script
+├── config/             # Django project settings
+│   ├── settings.py
+│   ├── urls.py
+│   └── asgi.py         # ASGI config with WebSocket routing
+├── jukebox/            # Main application
+│   ├── views.py        # Dashboard view
+│   ├── consumers.py    # WebSocket handler
+│   ├── controller.py   # Audio playback controller
+│   ├── lyrics.py       # Lyrics fetching
+│   ├── templates/      # HTML templates
+│   └── static/         # CSS, JS, images
+└── pyproject.toml
+```
+
+## How It Works
+
+1. User submits a YouTube URL via the web interface
+2. The URL is sent to the server via WebSocket
+3. `yt-dlp` downloads the audio
+4. `just-playback` plays the audio on the server
+5. Real-time updates (now playing, queue, lyrics) are pushed to all connected clients
 
 ## Deployment on NixOS
-
-To deploy this application on a NixOS system, you can import the flake directly in your NixOS configuration:
 
 ```nix
 {
@@ -94,37 +69,15 @@ To deploy this application on a NixOS system, you can import the flake directly 
   
   outputs = { self, nixpkgs, jukebox-django, ... }: {
     nixosConfigurations.yourSystem = nixpkgs.lib.nixosSystem {
-      # ...
       modules = [
-        # ...
         ({ pkgs, ... }: {
-          environment.systemPackages = [
-            jukebox-django.packages.${pkgs.system}.default
-          ];
-          
-          # Optional: Create a systemd service for the backend server
-          systemd.services.jukebox-backend = {
-            description = "Jukebox Backend Service";
+          systemd.services.jukebox = {
+            description = "Jukebox Service";
             wantedBy = [ "multi-user.target" ];
             after = [ "network.target" ];
             serviceConfig = {
-              ExecStart = "${jukebox-django.packages.${pkgs.system}.default}/bin/jukebox-django-backend";
+              ExecStart = "${jukebox-django.packages.${pkgs.system}.default}/bin/jukebox-django 8000";
               Restart = "always";
-              User = "jukebox";
-              Group = "jukebox";
-            };
-          };
-          
-          # Optional: Create a systemd service for the Django server
-          systemd.services.jukebox-server = {
-            description = "Jukebox Django Web Service";
-            wantedBy = [ "multi-user.target" ];
-            after = [ "network.target" ];
-            serviceConfig = {
-              ExecStart = "${jukebox-django.packages.${pkgs.system}.default}/bin/jukebox-django-server 0.0.0.0:8000";
-              Restart = "always";
-              User = "jukebox";
-              Group = "jukebox";
             };
           };
         })
