@@ -61,6 +61,7 @@
               pyproject-build-systems.overlays.wheel
               overlay
               (final: prev: {
+                editables = prev.editables or pkgs.python312Packages.editables;
                 # Fix for py-ubjson requiring setuptools at build time
                 py-ubjson = prev.py-ubjson.overrideAttrs (old: {
                   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.setuptools ];
