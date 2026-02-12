@@ -60,6 +60,11 @@
             lib.composeManyExtensions [
               pyproject-build-systems.overlays.wheel
               overlay
+              (final: prev: {
+                py-ubjson = prev.py-ubjson.overridePythonAttrs (old: {
+                  buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.portaudio ];
+                });
+              })
             ]
           )
       );
