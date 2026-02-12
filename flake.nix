@@ -3,48 +3,36 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    pyproject-nix = {
-      url = "github:pyproject-nix/pyproject.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    uv2nix = {
-      url = "github:pyproject-nix/uv2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.pyproject-nix.follows = "pyproject-nix";
-    };
   };
 
-  outputs = { self, nixpkgs, pyproject-nix, uv2nix, ... }:
+  outputs = { self, nixpkgs, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-
-      workspace = uv2nix.lib.workspace.loadWorkspace {
-        workspaceRoot = ./.;
-      };
-
-      overlay = workspace.mkPyprojectOverlay {
-        sourcePreference = "wheel";
-      };
-
-      pythonSet = (pkgs.callPackage pyproject-nix.buildPackages.pyproject-set {
-        python = pkgs.python312;
-      }).overrideScope overlay;
-
-      virtualenv = pythonSet.mkVirtualEnv "jukebox-django-dev" workspace.deps.default;
-
-    in {
+    in
+    {
       devShells.${system}.default = pkgs.mkShell {
-        packages = [
-          virtualenv
-          pkgs.uv
+        buildInputs = [
+          pkgs.python312
+          pkgs.poetry
           pkgs.ffmpeg
           pkgs.portaudio
         ];
 
         shellHook = ''
+          poetry env use python3.12
+
+          if [ ! -d ".venv" ]; then
+            echo "Initializing virtual environment..."
+            poetry install
+          fi
+
+          # Required for just-playback to find libportaudio
           export LD_LIBRARY_PATH="${pkgs.portaudio}/lib:$LD_LIBRARY_PATH"
-          echo "Run: python manage.py runserver"
+          
+          echo "System: ${system}"
+          echo "Python: $(python --version)"
+          echo "Run: poetry run python manage.py runserver"
         '';
       };
     };
