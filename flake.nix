@@ -1,66 +1,111 @@
 {
-  description = "OCF Jukebox Django Application";
+  description = "OCF Jukebox Django Application using uv2nix";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    pyproject-nix.url = "github:pyproject-nix/pyproject.nix";
-    uv2nix.url = "github:pyproject-nix/uv2nix";
-    uv2nix.inputs.pyproject-nix.follows = "pyproject-nix";
-    pyproject-build-systems.url = "github:pyproject-nix/build-system-pkgs";
-    pyproject-build-systems.inputs.pyproject-nix.follows = "pyproject-nix";
-    pyproject-build-systems.inputs.nixpkgs.follows = "nixpkgs";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+
+    pyproject-nix = {
+      url = "github:pyproject-nix/pyproject.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    uv2nix = {
+      url = "github:pyproject-nix/uv2nix";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    pyproject-build-systems = {
+      url = "github:pyproject-nix/build-system-pkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.uv2nix.follows = "uv2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, pyproject-nix, uv2nix, pyproject-build-systems, ... }:
+  outputs =
+    {
+      nixpkgs,
+      pyproject-nix,
+      uv2nix,
+      pyproject-build-systems,
+      ...
+    }:
     let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      python = pkgs.python312;
+      inherit (nixpkgs) lib;
+      # Restrict to x86_64-linux as requested
+      supportedSystems = [ "x86_64-linux" ];
+      forSystems = lib.genAttrs supportedSystems;
 
-      workspace = uv2nix.lib.workspace.loadWorkspace {
-        src = ./.;
-      };
+      workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
 
       overlay = workspace.mkPyprojectOverlay {
-        inherit pkgs;
+        sourcePreference = "wheel";
       };
 
-      pythonSet = (pkgs.callPackage pyproject-nix.buildHelpers.packages {
-        inherit python;
-      }).overrideScope (
-        pkgs.lib.composeManyExtensions [
-          pyproject-nix.pythonPackagesMatchers.default
-          overlay
-          pyproject-build-systems.overlays.default
-          (final: prev: {
-            # Add overrides here if needed
-            just-playback = prev.just-playback.overridePythonAttrs (old: {
-              buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.portaudio ];
-            });
-          })
-        ]
+      editableOverlay = workspace.mkEditablePyprojectOverlay {
+        root = "$REPO_ROOT";
+      };
+
+      pythonSets = forSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          python = pkgs.python312;
+        in
+        (pkgs.callPackage pyproject-nix.build.packages {
+          inherit python;
+        }).overrideScope
+          (
+            lib.composeManyExtensions [
+              pyproject-build-systems.overlays.wheel
+              overlay
+              (final: prev: {
+                # Ensure just-playback finds portaudio
+                just-playback = prev.just-playback.overridePythonAttrs (old: {
+                  buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.portaudio ];
+                });
+              })
+            ]
+          )
       );
 
-      env = pythonSet.withPackages (ps: [
-        ps.jukebox-django
-      ]);
     in
     {
-      packages.${system}.default = env;
+      devShells = forSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          pythonSet = pythonSets.${system}.overrideScope editableOverlay;
+          virtualenv = pythonSet.mkVirtualEnv "jukebox-django-dev-env" workspace.deps.all;
+        in
+        {
+          default = pkgs.mkShell {
+            packages = [
+              virtualenv
+              pkgs.uv
+              pkgs.ffmpeg
+              pkgs.portaudio
+            ];
+            env = {
+              UV_NO_SYNC = "1";
+              UV_PYTHON = pythonSet.python.interpreter;
+              UV_PYTHON_DOWNLOADS = "never";
+              # Required for just-playback to find libportaudio at runtime
+              LD_LIBRARY_PATH = "${pkgs.portaudio}/lib";
+            };
+            shellHook = ''
+              unset PYTHONPATH
+              export REPO_ROOT=$(git rev-parse --show-toplevel)
+              echo "Jukebox Django Dev Shell (x86_64-linux)"
+              echo "Python: $(python --version)"
+            '';
+          };
+        }
+      );
 
-      devShells.${system}.default = pkgs.mkShell {
-        packages = [
-          env
-          pkgs.uv
-          pkgs.ffmpeg
-          pkgs.portaudio
-        ];
-
-        shellHook = ''
-          export LD_LIBRARY_PATH="${pkgs.portaudio}/lib:$LD_LIBRARY_PATH"
-          echo "Jukebox Django Dev Shell (x86_64-linux)"
-          echo "Python: $(python --version)"
-        '';
-      };
+      packages = forSystems (system: {
+        default = pythonSets.${system}.mkVirtualEnv "jukebox-django-env" workspace.deps.default;
+      });
     };
 }
