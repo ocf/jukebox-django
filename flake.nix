@@ -60,12 +60,6 @@
             lib.composeManyExtensions [
               pyproject-build-systems.overlays.wheel
               overlay
-              (final: prev: {
-                # Ensure just-playback finds portaudio
-                just-playback = prev.just-playback.overridePythonAttrs (old: {
-                  buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.portaudio ];
-                });
-              })
             ]
           )
       );
