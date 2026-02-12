@@ -61,14 +61,8 @@
               pyproject-build-systems.overlays.wheel
               overlay
               (final: prev: {
-                editables = prev.editables or pkgs.python312Packages.editables;
-                # Fix for py-ubjson requiring setuptools at build time
                 py-ubjson = prev.py-ubjson.overrideAttrs (old: {
                   nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.setuptools ];
-                });
-                # Ensure just-playback finds portaudio
-                just-playback = prev.just-playback.overrideAttrs (old: {
-                  buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.portaudio ];
                 });
               })
             ]
@@ -82,7 +76,7 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           pythonSet = pythonSets.${system}.overrideScope editableOverlay;
-          virtualenv = pythonSet.mkVirtualEnv "jukebox-django-dev-env" workspace.deps.all;
+          virtualenv = pythonSet.mkVirtualEnv "jukebox-django-dev-env" (workspace.deps.all // { editables = [ ]; });
         in
         {
           default = pkgs.mkShell {
