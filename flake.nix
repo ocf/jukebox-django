@@ -33,7 +33,6 @@
     }:
     let
       inherit (nixpkgs) lib;
-      # Restrict to x86_64-linux as requested
       supportedSystems = [ "x86_64-linux" ];
       forSystems = lib.genAttrs supportedSystems;
 
@@ -96,8 +95,7 @@
             shellHook = ''
               unset PYTHONPATH
               export REPO_ROOT=$(git rev-parse --show-toplevel)
-              echo "Jukebox Django Dev Shell (x86_64-linux)"
-              echo "Python: $(python --version)"
+              echo "Run: python manage.py runserver"
             '';
           };
         }
