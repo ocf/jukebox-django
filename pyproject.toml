@@ -14,7 +14,8 @@ dependencies = [
     "channels (>=4.3.2,<5.0.0)",
     "just-playback (>=0.1.8,<0.2.0)",
     "yt-dlp (>=2026.2.4,<2027.0.0)",
-    "requests (>=2.32.5,<3.0.0)"
+    "requests (>=2.32.5,<3.0.0)",
+    "setuptools>=82.0.0",
 ]
 
 
