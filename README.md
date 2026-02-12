@@ -4,18 +4,16 @@ A Django-based music player for the OCF. Submit YouTube URLs to play music throu
 
 ## Getting Started
 
-### Option 1: Using Poetry
+### Option 1: Using UV
 
 Requirements:
-- Python 3.10-3.12
-- [Poetry](https://python-poetry.org/)
-- FFmpeg (for audio processing)
+- Python 3.12
+- [uv](https://github.com/astral-sh/uv)
 
 ```bash
 git clone https://github.com/ocf/jukebox-django
 cd jukebox-django
-poetry install
-poetry run python manage.py runserver
+uv run python manage.py runserver
 ```
 
 Go to `http://127.0.0.1:8000/` to access the jukebox.
@@ -24,33 +22,7 @@ Go to `http://127.0.0.1:8000/` to access the jukebox.
 
 ```bash
 nix develop
-python manage.py runserver
-```
-
-Or build and run:
-
-```bash
-nix build
-./result/bin/jukebox-django
-```
-
-## Project Structure
-
-```
-jukebox-django/
-├── manage.py           # Django management script
-├── config/             # Django project settings
-│   ├── settings.py
-│   ├── urls.py
-│   └── asgi.py         # ASGI config with WebSocket routing
-├── jukebox/            # Main application
-│   ├── views.py        # Dashboard view
-│   ├── consumers.py    # WebSocket handler
-│   ├── controller.py   # Audio playback controller
-│   ├── lyrics.py       # Lyrics fetching
-│   ├── templates/      # HTML templates
-│   └── static/         # CSS, JS, images
-└── pyproject.toml
+uv run python manage.py runserver
 ```
 
 ## How It Works

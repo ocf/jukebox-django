@@ -3,36 +3,38 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    pyproject-nix.url = "github:pyproject-nix/pyproject.nix";
+    uv2nix.url = "github:pyproject-nix/uv2nix";
   };
 
-  outputs = { self, nixpkgs, ... }:
+  outputs = { self, nixpkgs, pyproject-nix, uv2nix, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-    in
-    {
+
+      workspace = uv2nix.lib.${system}.loadWorkspace {
+        src = ./.;
+      };
+
+      pythonEnv = pyproject-nix.lib.${system}.mkPythonApplication {
+        inherit (workspace) name version src;
+        pyproject = workspace.pyproject;
+        lockFile = workspace.lockFile;
+        python = pkgs.python312;
+      };
+
+    in {
       devShells.${system}.default = pkgs.mkShell {
-        buildInputs = [
-          pkgs.python312
-          pkgs.poetry
+        packages = [
+          pythonEnv
+          pkgs.uv
           pkgs.ffmpeg
           pkgs.portaudio
         ];
 
         shellHook = ''
-          poetry env use python3.12
-
-          if [ ! -d ".venv" ]; then
-            echo "Initializing virtual environment..."
-            poetry install
-          fi
-
-          # Required for just-playback to find libportaudio
           export LD_LIBRARY_PATH="${pkgs.portaudio}/lib:$LD_LIBRARY_PATH"
-          
-          echo "System: ${system}"
-          echo "Python: $(python --version)"
-          echo "Run: poetry run python manage.py runserver"
+          echo "Run: python manage.py runserver"
         '';
       };
     };
