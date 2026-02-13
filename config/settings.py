@@ -1,10 +1,11 @@
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "tmp-key"
-
+SECRET_KEY = os.environ.get("SECRET_KEY", "tmp_key")
 DEBUG = True
+MUSIC_DIR = os.environ.get("JUKEBOX_MUSIC_DIR", "music")
 
 ALLOWED_HOSTS = [
     "termites",

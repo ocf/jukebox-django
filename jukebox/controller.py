@@ -7,10 +7,12 @@ from just_playback import Playback
 from .lyrics import Lyrics
 from .song import Song
 import time
+from django.conf import settings
 
 
 class Controller:
-    def __init__(self, music_dir="music"):
+    def __init__(self, music_dir=None):
+        self.music_dir = music_dir or settings.MUSIC_DIR
         self.download_opts = {
             "extract_audio": True,
             "format": "bestaudio",
@@ -33,10 +35,9 @@ class Controller:
         threading.Thread(target=self._download_worker, daemon=True).start()
         threading.Thread(target=self._music_worker, daemon=True).start()
 
-        self.music_dir = music_dir
-        if not os.path.exists(music_dir):
-            print(f"Creating music directory: {music_dir}")
-            os.mkdir(self.music_dir)
+        if not os.path.exists(self.music_dir):
+            print(f"Creating music directory: {self.music_dir}")
+            os.makedirs(self.music_dir, exist_ok=True)
 
     def _download_worker(self):
         while True:
@@ -205,5 +206,5 @@ def get_controller():
     """Get the shared Controller instance, creating it on first access."""
     global _controller
     if _controller is None:
-        _controller = Controller(music_dir="music")
+        _controller = Controller()
     return _controller
