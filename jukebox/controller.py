@@ -15,6 +15,7 @@ class Controller:
             "extract_audio": True,
             "format": "bestaudio",
             "outtmp": "%(title)s",
+            "noplaylist": True,
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "wav",
