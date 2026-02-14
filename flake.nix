@@ -25,6 +25,7 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       pyproject-nix,
       uv2nix,
@@ -102,7 +103,45 @@
       );
 
       packages = forSystems (system: {
-        default = pythonSets.${system}.mkVirtualEnv "jukebox-django-env" workspace.deps.default;
+        default =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+            venv = pythonSets.${system}.mkVirtualEnv "jukebox-django-env" workspace.deps.default;
+            src = ./.;
+          in
+          pkgs.symlinkJoin {
+            name = "jukebox-django";
+            paths = [ venv ];
+            nativeBuildInputs = [ pkgs.makeWrapper ];
+            postBuild = ''
+              wrapProgram $out/bin/daphne \
+                --set PYTHONPATH "${src}" \
+                --set LD_LIBRARY_PATH "${pkgs.portaudio}/lib"
+
+              makeWrapper ${venv}/bin/python $out/bin/jukebox-manage \
+                --add-flags "${src}/manage.py" \
+                --set PYTHONPATH "${src}" \
+                --set LD_LIBRARY_PATH "${pkgs.portaudio}/lib"
+            '';
+          };
+      });
+
+      apps = forSystems (system: {
+        default = {
+          type = "app";
+          program =
+            let
+              pkgs = nixpkgs.legacyPackages.${system};
+              script = pkgs.writeShellScriptBin "jukebox-server" ''
+                export PATH="${self.packages.${system}.default}/bin:$PATH"
+                export LD_LIBRARY_PATH="${pkgs.portaudio}/lib:$LD_LIBRARY_PATH"
+                # Ensure static files are collected if DEBUG is False
+                python manage.py collectstatic --no-input
+                exec daphne config.asgi:application
+              '';
+            in
+            "${script}/bin/jukebox-server";
+        };
       });
     };
 }
