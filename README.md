@@ -4,18 +4,28 @@ A Django-based music player for the OCF. Submit YouTube URLs to play music throu
 
 ## Getting Started
 
-### Option 1: Using Poetry
+### Option 1: Using uv
 
 Requirements:
-- Python 3.10-3.12
-- [Poetry](https://python-poetry.org/)
+- Python 3.12
+- [uv](https://github.com/astral-sh/uv)
 - FFmpeg (for audio processing)
 
+For dev
 ```bash
 git clone https://github.com/ocf/jukebox-django
 cd jukebox-django
-poetry install
-poetry run python manage.py runserver
+uv run python manage.py migrate
+uv run python manage.py collectstatic
+uv run python manage.py runserver
+```
+For prod
+```bash
+git clone https://github.com/ocf/jukebox-django
+cd jukebox-django
+uv run python manage.py migrate
+uv run python manage.py collectstatic
+uv run daphne -b 0.0.0.0 -p 8000 config.asgi:application
 ```
 
 Go to `http://127.0.0.1:8000/` to access the jukebox.
@@ -30,7 +40,7 @@ python manage.py runserver
 Or run:
 
 ```bash
-nix run github.com/ocf/jukebox-django
+nix run github:ocf/jukebox-django
 ```
 
 ## Project Structure
@@ -59,29 +69,3 @@ jukebox-django/
 3. `yt-dlp` downloads the audio
 4. `just-playback` plays the audio on the server
 5. Real-time updates (now playing, queue, lyrics) are pushed to all connected clients
-
-## Deployment on NixOS
-
-```nix
-{
-  inputs.jukebox-django.url = "github:ocf/jukebox-django";
-  
-  outputs = { self, nixpkgs, jukebox-django, ... }: {
-    nixosConfigurations.yourSystem = nixpkgs.lib.nixosSystem {
-      modules = [
-        ({ pkgs, ... }: {
-          systemd.services.jukebox = {
-            description = "Jukebox Service";
-            wantedBy = [ "multi-user.target" ];
-            after = [ "network.target" ];
-            serviceConfig = {
-              ExecStart = "${jukebox-django.packages.${pkgs.system}.default}/bin/jukebox-django 8000";
-              Restart = "always";
-            };
-          };
-        })
-      ];
-    };
-  };
-}
-```
