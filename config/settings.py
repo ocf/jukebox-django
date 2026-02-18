@@ -1,17 +1,29 @@
 from pathlib import Path
 import os
+import tempfile
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "tmp_key")
 DEBUG = False
-MUSIC_DIR = os.environ.get("JUKEBOX_MUSIC_DIR", "music")
 
-ALLOWED_HOSTS = [
-    "termites",
-    "localhost",
-    "127.0.0.1"
-]
+# Data storage directory. Default to a subdirectory in the system's temp directory.
+# This ensures that both the music and database are stored in a writable location.
+JUKEBOX_DATA_DIR = os.environ.get("JUKEBOX_DATA_DIR", os.path.join(tempfile.gettempdir(), "jukebox-django"))
+DATA_DIR = Path(JUKEBOX_DATA_DIR).resolve()
+
+# Ensure the data directory exists
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    # During Nix builds or in restricted environments, we might not be able to create this.
+    # We continue anyway as it might not be needed for the current command (e.g. collectstatic).
+    pass
+
+# Use absolute paths for music and the database to avoid ambiguity when running from different locations.
+MUSIC_DIR = os.environ.get("JUKEBOX_MUSIC_DIR", str(DATA_DIR / "music"))
+
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "termites,localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
     'daphne',
@@ -70,7 +82,7 @@ STORAGES = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.environ.get("DJANGO_DB_PATH", BASE_DIR / 'db.sqlite3'),
+        'NAME': os.environ.get("DJANGO_DB_PATH", str(DATA_DIR / 'db.sqlite3')),
     }
 }
 

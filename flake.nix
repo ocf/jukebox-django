@@ -152,6 +152,8 @@
             in
             lib.getExe (
               pkgs.writeShellScriptBin "jukebox-server" ''
+                # Run migrations if necessary
+                ${self.packages.${system}.default}/bin/jukebox-manage migrate --no-input
                 exec ${self.packages.${system}.default}/bin/daphne config.asgi:application
               ''
             );
