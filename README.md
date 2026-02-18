@@ -27,11 +27,10 @@ nix develop
 python manage.py runserver
 ```
 
-Or build and run:
+Or run:
 
 ```bash
-nix build
-./result/bin/jukebox-django
+nix run github.com/ocf/jukebox-django
 ```
 
 ## Project Structure
