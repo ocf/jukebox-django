@@ -108,6 +108,19 @@
             pkgs = nixpkgs.legacyPackages.${system};
             venv = pythonSets.${system}.mkVirtualEnv "jukebox-django-env" workspace.deps.default;
             src = ./.;
+
+            # Collect static files during build
+            staticfiles = pkgs.stdenv.mkDerivation {
+              name = "jukebox-staticfiles";
+              inherit src;
+              nativeBuildInputs = [ venv ];
+              buildPhase = ''
+                export PYTHONPATH=$src
+                export DJANGO_STATIC_ROOT=$out
+                python -m django collectstatic --no-input --settings=config.settings
+              '';
+              installPhase = "true";
+            };
           in
           pkgs.symlinkJoin {
             name = "jukebox-django";
@@ -116,12 +129,16 @@
             postBuild = ''
               wrapProgram $out/bin/daphne \
                 --set PYTHONPATH "${src}" \
-                --set LD_LIBRARY_PATH "${pkgs.portaudio}/lib"
+                --set DJANGO_STATIC_ROOT "${staticfiles}" \
+                --set LD_LIBRARY_PATH "${pkgs.portaudio}/lib" \
+                --prefix PATH : "${lib.makeBinPath [ pkgs.ffmpeg ]}"
 
               makeWrapper ${venv}/bin/python $out/bin/jukebox-manage \
                 --add-flags "${src}/manage.py" \
                 --set PYTHONPATH "${src}" \
-                --set LD_LIBRARY_PATH "${pkgs.portaudio}/lib"
+                --set DJANGO_STATIC_ROOT "${staticfiles}" \
+                --set LD_LIBRARY_PATH "${pkgs.portaudio}/lib" \
+                --prefix PATH : "${lib.makeBinPath [ pkgs.ffmpeg ]}"
             '';
           };
       });
@@ -132,15 +149,12 @@
           program =
             let
               pkgs = nixpkgs.legacyPackages.${system};
-              script = pkgs.writeShellScriptBin "jukebox-server" ''
-                export PATH="${self.packages.${system}.default}/bin:$PATH"
-                export LD_LIBRARY_PATH="${pkgs.portaudio}/lib:$LD_LIBRARY_PATH"
-                # Ensure static files are collected if DEBUG is False
-                python manage.py collectstatic --no-input
-                exec daphne config.asgi:application
-              '';
             in
-            "${script}/bin/jukebox-server";
+            lib.getExe (
+              pkgs.writeShellScriptBin "jukebox-server" ''
+                exec ${self.packages.${system}.default}/bin/daphne config.asgi:application
+              ''
+            );
         };
       });
     };
