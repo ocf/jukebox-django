@@ -127,16 +127,16 @@
             nativeBuildInputs = [ pkgs.makeWrapper ];
             postBuild = ''
               wrapProgram $out/bin/daphne \
-                --set PYTHONPATH "${src}" \
-                --set DJANGO_STATIC_ROOT "${staticfiles}" \
-                --set LD_LIBRARY_PATH "${pkgs.portaudio}/lib" \
+                --set-default PYTHONPATH "${src}" \
+                --set-default DJANGO_STATIC_ROOT "${staticfiles}" \
+                --set-default LD_LIBRARY_PATH "${pkgs.portaudio}/lib" \
                 --prefix PATH : "${lib.makeBinPath [ pkgs.ffmpeg ]}"
 
               makeWrapper ${venv}/bin/python $out/bin/jukebox-manage \
                 --add-flags "${src}/manage.py" \
-                --set PYTHONPATH "${src}" \
-                --set DJANGO_STATIC_ROOT "${staticfiles}" \
-                --set LD_LIBRARY_PATH "${pkgs.portaudio}/lib" \
+                --set-default PYTHONPATH "${src}" \
+                --set-default DJANGO_STATIC_ROOT "${staticfiles}" \
+                --set-default LD_LIBRARY_PATH "${pkgs.portaudio}/lib" \
                 --prefix PATH : "${lib.makeBinPath [ pkgs.ffmpeg ]}"
             '';
           };
