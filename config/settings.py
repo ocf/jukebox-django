@@ -8,7 +8,12 @@ MUSIC_DIR = os.environ.get("JUKEBOX_MUSIC_DIR", "music")
 DEBUG = False
 
 ALLOWED_HOSTS = [
+    "termites.ocf.berkeley.edu",
+    "termites.ocf.io",
+    "jukebox.ocf.berkeley.edu",
+    "jukebox.ocf.io",
     "termites",
+    "jukebox",
     "localhost",
     "127.0.0.1"
 ]
