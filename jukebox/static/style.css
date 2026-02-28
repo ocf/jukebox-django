@@ -126,10 +126,22 @@ body {
   text-align: center;
   gap: 1.5em;
   line-height: 1.2em;
-  font-size: 2em;
+  font-size: 1em;
   overflow-y: auto;
 }
 
 #active-lyric {
   font-weight: bold;
+}
+
+@media only screen and (max-width: 1024px) {
+    .player-center {
+        display: none;
+    }
+    .sidebar-left {
+      display: none;
+    }
+    .sidebar-right {
+      display: none;
+    }
 }
