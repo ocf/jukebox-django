@@ -38,15 +38,15 @@ body {
 }
 
 #song-thumbnail {
-  width: 80%;
-  height: 80%;
+  width: min(60vw, 60vh);
+  height: min(60vw, 60vh);
   border-radius: 0.5em;
   object-fit: cover;
 }
 
 #default-thumbnail {
-  width: 80%;
-  height: 80%;
+  width: min(60vw, 60vh);
+  height: min(60vw, 60vh);
   border-radius: 0.5em;
   object-fit: scale-down;
 }
