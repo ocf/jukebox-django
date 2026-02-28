@@ -41,22 +41,32 @@
 
     <!-- Bottom: Player Bar -->
     <div class="player-bar">
-      <div class="player-left">
-        <div id="play-button">{% icon 'play' extra_classes='fa-xl' %}</div>
-        <div id="pause-button">{% icon 'pause' extra_classes='fa-xl' %}</div>
-        <div id="next-button">{% icon 'next' extra_classes='fa-xl' %}</div>
-        <div></div>
-        <span id="start-time">0:00</span>
-        <span>/</span>
-        <span id="end-time">0:00</span>
-      </div>
-      <div class="player-center">
-        <div id="song-title">Nothing Playing</div>
-        <div id="song-author">No Author</div>
-      </div>
-      <div class="player-right">
-        {% icon 'volume' extra_classes='fa-xl' %}
-        <input id="volume-slider" type="range" min="0" max="100" />
+      <input
+        id="seek-slider"
+        type="range"
+        min="0"
+        max="1000"
+        step="1"
+        value="0"
+      />
+      <div class="player-controls">
+        <div class="player-left">
+          <div id="play-button">{% icon 'play' extra_classes='fa-xl' %}</div>
+          <div id="pause-button">{% icon 'pause' extra_classes='fa-xl' %}</div>
+          <div id="next-button">{% icon 'next' extra_classes='fa-xl' %}</div>
+          <div></div>
+          <span id="start-time">0:00</span>
+          <span>/</span>
+          <span id="end-time">0:00</span>
+        </div>
+        <div class="player-center">
+          <div id="song-title">Nothing Playing</div>
+          <div id="song-author">No Author</div>
+        </div>
+        <div class="player-right">
+          {% icon 'volume' extra_classes='fa-xl' %}
+          <input id="volume-slider" type="range" min="0" max="100" />
+        </div>
       </div>
     </div>
 

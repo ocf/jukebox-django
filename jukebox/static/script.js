@@ -21,8 +21,10 @@ class Jukebox {
       endTime: document.querySelector("#end-time"),
       lyricsContainer: document.querySelector("#lyrics-container"),
       queue: document.querySelector("#queue"),
+      seekSlider: document.querySelector("#seek-slider"),
     };
     this.elements.playButton.style.display = "none";
+    this.isSeeking = false;
   }
 
   initSocket() {
@@ -44,7 +46,7 @@ class Jukebox {
   }
 
   bindEvents() {
-    const { urlButton, urlInput, pauseButton, playButton, nextButton, volumeSlider } = this.elements;
+    const { urlButton, urlInput, pauseButton, playButton, nextButton, volumeSlider, seekSlider } = this.elements;
 
     urlButton.addEventListener("click", (e) => {
       e.preventDefault();
@@ -61,6 +63,15 @@ class Jukebox {
 
     volumeSlider.addEventListener("change", () => {
       this.send("volume", { volume: volumeSlider.value / 100 });
+    });
+
+    seekSlider.addEventListener("input", () => {
+      this.isSeeking = true;
+    });
+
+    seekSlider.addEventListener("change", () => {
+      this.send("time", { new_pos: seekSlider.value / 1000 });
+      this.isSeeking = false;
     });
   }
 
@@ -123,9 +134,13 @@ class Jukebox {
   }
 
   onTime({ duration, curr_pos }) {
-    const { startTime, endTime } = this.elements;
+    const { startTime, endTime, seekSlider } = this.elements;
     startTime.textContent = this.formatTime(curr_pos);
     endTime.textContent = this.formatTime(duration);
+
+    if (!this.isSeeking && duration > 0) {
+      seekSlider.value = (curr_pos / duration) * 1000;
+    }
   }
 
   onLyrics({ lyrics, index }) {
