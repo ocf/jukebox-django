@@ -35,11 +35,18 @@ body {
   border-right: 2px solid;
 }
 
-.now-playing img {
+#song-thumbnail {
   width: 80%;
   height: 80%;
   border-radius: 0.5em;
   object-fit: cover;
+}
+
+#default-thumbnail {
+  width: 80%;
+  height: 80%;
+  border-radius: 0.5em;
+  object-fit: scale-down;
 }
 
 .player-bar {
