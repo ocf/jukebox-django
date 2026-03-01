@@ -104,6 +104,7 @@ class Jukebox {
   }
 
   onSongs({ songs }) {
+    console.log("Queue updated:", songs);
     this.elements.queue.innerHTML = songs
       .map(
         (song) => `

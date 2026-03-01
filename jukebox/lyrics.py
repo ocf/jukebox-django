@@ -1,5 +1,6 @@
 import requests
 import urllib.parse
+from .types import LyricLine
 
 
 class Lyrics:
@@ -16,12 +17,12 @@ class Lyrics:
                 try:
                     time_str = line.split(" ")[0][1:-1]
                     timestamp = 60 * int(time_str.split(":")[0]) + float(time_str.split(":")[1])
-                    lyrics.append({"timestamp": timestamp, "line": " ".join(line.split(" ")[1:])})
+                    lyrics.append(LyricLine(timestamp=timestamp, line=" ".join(line.split(" ")[1:])))
                 except:
                     continue
         elif plain_lyrics:
             for line in plain_lyrics.split("\n"):
-                lyrics.append({"timestamp": None, "line": line})
+                lyrics.append(LyricLine(timestamp=None, line=line))
         return lyrics
 
     def get(self, song):

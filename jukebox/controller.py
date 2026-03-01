@@ -5,7 +5,7 @@ import uuid
 import yt_dlp
 from just_playback import Playback
 from .lyrics import Lyrics
-from .song import Song
+from .types import Song, LyricsState
 import time
 from django.conf import settings
 
@@ -64,8 +64,7 @@ class Controller:
         album = entry.get("album", "")
         url = entry.get("url", "")
 
-        song = Song(title=title, author=author, album=album, file=file,
-                    format=format, thumbnail=thumbnail, url=url)
+        song = Song(id=uuid.uuid4(), title=title, author=author, album=album, file=file, format=format, thumbnail=thumbnail, url=url)
 
         song.lyrics = self.lyrics.get(song)
 
@@ -162,7 +161,12 @@ class Controller:
         new_volume = max(0.0, min(1.0, new_volume))
         self.playback.set_volume(new_volume)
 
-    def get_active(self):
+    def get_status(self):
+        if not self.playback.active:
+            return "stop"
+        return "pause" if self.playback.paused else "play"
+
+    def is_active(self):
         return self.playback.active
 
     def get_volume(self):
@@ -180,23 +184,32 @@ class Controller:
         self.playback.seek(new_pos)
 
     def get_lyrics(self):
-        if len(self.song_list) == 0:
-            return {"lyrics": [], "index": None}
+        # Get current song lyrics and line index
+        song = self.get_first_song()
+        if not song:
+            return LyricsState(lyrics=[], index=None)
 
         curr_pos = self.get_curr_pos()
-        song = self.song_list[0]
         lyrics = []
 
         if not song.lyrics:
-            return {"lyrics": [], "index": None}
+            return LyricsState(lyrics=[], index=None)
 
         index = None
         for i in range(len(song.lyrics)):
             lyric = song.lyrics[i]
-            if lyric["timestamp"] and lyric["timestamp"] < curr_pos:
+            if lyric.timestamp and lyric.timestamp < curr_pos:
                 index = i
-            lyrics.append(lyric["line"])
-        return {"lyrics": lyrics, "index": index}
+            lyrics.append(lyric.line)
+        return LyricsState(lyrics=lyrics, index=index)
+
+    def get_queue(self):
+        return self.song_list
+
+    def get_first_song(self):
+        if len(self.song_list) == 0:
+            return None
+        return self.song_list[0]
 
 
 _controller = None
