@@ -58,7 +58,7 @@ class Controller:
         title = entry.get("title", "")
         format = "wav"
         prepared_filename = audio.prepare_filename(entry)
-        base_filename = os.path.splitext(prepared_filename)[0]
+        base_filename = prepared_filename.rsplit('.', 1)[0]
         file = f"{base_filename}.{format}"
         author = entry.get("channel", "")
         album = entry.get("album", "")
