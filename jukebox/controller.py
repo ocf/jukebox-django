@@ -5,7 +5,7 @@ import uuid
 import yt_dlp
 from just_playback import Playback
 from .lyrics import Lyrics
-from .types import Song, LyricsState
+from .types import Song, LyricsState, TimeState, JukeboxState
 import time
 from django.conf import settings
 
@@ -205,6 +205,21 @@ class Controller:
         if len(self.song_list) == 0:
             return None
         return self.song_list[0]
+
+    def get_state(self):
+        active = self.is_active()
+        time_state = TimeState(
+            duration=self.get_duration() if active else 1,
+            curr_pos=self.get_curr_pos() if active else 0
+        )
+        return JukeboxState(
+            volume=self.get_volume(),
+            status=self.get_status(),
+            time=time_state,
+            now_playing=self.get_first_song(),
+            queue=self.get_queue(),
+            lyrics=self.get_lyrics()
+        )
 
 
 _controller = None

@@ -54,7 +54,7 @@ class JukeboxConsumer(AsyncWebsocketConsumer):
                     duration = self.controller.get_duration()
                     self.controller.set_curr_pos(duration * new_pos)
 
-            state = await self.get_state()
+            state = self.controller.get_state()
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -71,7 +71,7 @@ class JukeboxConsumer(AsyncWebsocketConsumer):
         # Periodically sends jukebox state to the client
         try:
             while True:
-                current_state = await self.get_state()
+                current_state = self.controller.get_state()
                 await self.send_packet("now_playing", current_state.now_playing or {})
                 await self.send_packet("songs", {"songs": current_state.queue})
                 await self.send_packet("play_pause", {"status": current_state.status})
@@ -83,22 +83,6 @@ class JukeboxConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"Producer error: {e}")
             pass
-
-    async def get_state(self):
-        # Gets current jukebox state from the controller
-        active = self.controller.is_active()
-        time_state = TimeState(
-            duration=self.controller.get_duration() if active else 1,
-            curr_pos=self.controller.get_curr_pos() if active else 0
-        )
-        return JukeboxState(
-            volume=self.controller.get_volume(),
-            status=self.controller.get_status(),
-            time=time_state,
-            now_playing=self.controller.get_first_song(),
-            queue=self.controller.get_queue(),
-            lyrics=self.controller.get_lyrics()
-        )
 
     async def send_packet(self, packet_type, payload):
         await self.send(text_data=jsonpickle.encode({
