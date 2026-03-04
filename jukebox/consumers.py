@@ -36,8 +36,9 @@ class JukeboxConsumer(AsyncWebsocketConsumer):
             payload = packet.get("payload", {})
             if packet_type == "play":
                 url = payload.get("url")
-                if url:
-                    self.controller.play(url)
+                if url is None:
+                    return
+                self.controller.play(url)
             elif packet_type == "pause":
                 self.controller.pause()
             elif packet_type == "next":
@@ -46,13 +47,20 @@ class JukeboxConsumer(AsyncWebsocketConsumer):
                 self.controller.stop()
             elif packet_type == "volume":
                 volume = payload.get("volume")
-                if volume is not None:
-                    self.controller.set_volume(volume)
+                if volume is None:
+                    return
+                self.controller.set_volume(volume)
             elif packet_type == "time":
                 new_pos = payload.get("new_pos")
-                if new_pos is not None:
-                    duration = self.controller.get_duration()
-                    self.controller.set_curr_pos(duration * new_pos)
+                if new_pos is None:
+                    return
+                duration = self.controller.get_duration()
+                self.controller.set_curr_pos(duration * new_pos)
+            elif packet_type == "delete":
+                song_id = payload.get("id")
+                if song_id is None:
+                    return
+                self.controller.delete(song_id)
 
             state = self.controller.get_state()
             await self.channel_layer.group_send(
