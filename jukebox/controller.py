@@ -11,8 +11,9 @@ from django.conf import settings
 
 
 class Controller:
-    def __init__(self, music_dir=None):
+    def __init__(self, music_dir=None, cookie_file=None):
         self.music_dir = music_dir or settings.MUSIC_DIR
+        self.cookie_file = cookie_file or settings.COOKIE_FILE
         self.download_opts = {
             "extract_audio": True,
             "format": "bestaudio",
@@ -24,6 +25,9 @@ class Controller:
                 "preferredquality": "192",
             }],
         }
+        if self.cookie_file:
+            self.download_opts["cookiefile"] = cookie_file
+
 
         self.song_queue = queue.Queue()
         self.song_list = []
@@ -63,7 +67,7 @@ class Controller:
         album = entry.get("album", "")
         url = entry.get("url", "")
 
-        song = Song(id=uuid.uuid4(), title=title, author=author, album=album, file=file, format=format, thumbnail=thumbnail, url=url)
+        song = Song(id=str(uuid.uuid4()), title=title, author=author, album=album, file=file, format=format, thumbnail=thumbnail, url=url)
 
         song.lyrics = self.lyrics.get(song)
 
@@ -88,24 +92,30 @@ class Controller:
         while True:
             if not self.playback.active:
                 song = self.song_queue.get()
+                if song not in self.song_list:
+                    self.clean_song(song)
+                    self.song_queue.task_done()
+                    continue
+
                 path = song.file
                 self.play_song(path)
 
                 while self.playback.active:
                     time.sleep(0.1)
 
-                if song in self.song_list:
-                    self.song_list.remove(song)
-
-                file_still_needed = any(s.file == path for s in self.song_list)
-                if not file_still_needed and song.url not in self.download_list:
-                    try:
-                        os.remove(path)
-                    except:
-                        pass
+                self.song_list.remove(song)
+                self.clean_song(song)
                 self.song_queue.task_done()
             else:
                 time.sleep(0.1)
+    def clean_song(self, song):
+        path = song.file
+        file_still_needed = any(s.file == path for s in self.song_list)
+        if not file_still_needed and song.url not in self.download_list:
+            try:
+                os.remove(path)
+            except Exception as e:
+                print(f"Unable to delete file {path}: {e}")
 
     def play_song(self, path):
         try:
@@ -136,8 +146,8 @@ class Controller:
             try:
                 if os.path.isfile(filepath):
                     os.remove(filepath)
-            except:
-                print(f"Unable to delete file {filepath}")
+            except Exception as e:
+                print(f"Unable to delete file {filepath}: {e}")
 
     def pause(self):
         if self.playback.paused:
@@ -221,12 +231,16 @@ class Controller:
             lyrics=self.get_lyrics()
         )
 
+    def delete(self, song_id):
+        if len(self.song_list) > 0 and self.song_list[0].id == song_id:
+            return
+        self.song_list = [s for s in self.song_list if s.id != song_id]
+
 
 _controller = None
 
 
 def get_controller():
-    """Get the shared Controller instance, creating it on first access."""
     global _controller
     if _controller is None:
         _controller = Controller()

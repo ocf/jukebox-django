@@ -25,6 +25,7 @@ class Jukebox {
     };
     this.elements.playButton.style.display = "none";
     this.isSeeking = false;
+    this.isAdjustingVolume = false;
   }
 
   initSocket() {
@@ -46,7 +47,15 @@ class Jukebox {
   }
 
   bindEvents() {
-    const { urlButton, urlInput, pauseButton, playButton, nextButton, volumeSlider, seekSlider } = this.elements;
+    const {
+      urlButton,
+      urlInput,
+      pauseButton,
+      playButton,
+      nextButton,
+      volumeSlider,
+      seekSlider,
+    } = this.elements;
 
     urlButton.addEventListener("click", (e) => {
       e.preventDefault();
@@ -61,8 +70,13 @@ class Jukebox {
     playButton.addEventListener("click", () => this.send("pause"));
     nextButton.addEventListener("click", () => this.send("next"));
 
+    volumeSlider.addEventListener("input", () => {
+      this.isAdjustingVolume = true;
+    });
+
     volumeSlider.addEventListener("change", () => {
       this.send("volume", { volume: volumeSlider.value / 100 });
+      this.isAdjustingVolume = false;
     });
 
     seekSlider.addEventListener("input", () => {
@@ -72,6 +86,19 @@ class Jukebox {
     seekSlider.addEventListener("change", () => {
       this.send("time", { new_pos: seekSlider.value / 1000 });
       this.isSeeking = false;
+    });
+
+    this.elements.queue.addEventListener("click", (e) => {
+      const button = e.target.closest(".delete-button");
+      if (!button) {
+        return;
+      }
+      const songId = button.getAttribute("data-id");
+      if (!songId) {
+        return;
+      }
+      console.log(songId);
+      this.send("delete", { id: songId });
     });
   }
 
@@ -89,7 +116,8 @@ class Jukebox {
   }
 
   onNowPlaying({ title, author, thumbnail }) {
-    const { songTitle, songAuthor, songThumbnail, defaultThumbnail } = this.elements;
+    const { songTitle, songAuthor, songThumbnail, defaultThumbnail } =
+      this.elements;
     songTitle.textContent = title;
     songAuthor.textContent = author;
 
@@ -107,14 +135,15 @@ class Jukebox {
     console.log("Queue updated:", songs);
     this.elements.queue.innerHTML = songs
       .map(
-        (song) => `
+        (song, index) => `
         <div class="queue-item">
           <img src="${song.thumbnail}" alt="Thumbnail" />
           <div class="queue-info">
             <div>${song.title}</div>
             <div>${song.author}</div>
           </div>
-        </div>`
+          ${index > 0 ? `<button class="delete-button" data-id="${song.id}"><i class="fa-solid fa-trash"></i></button>` : ""}
+        </div>`,
       )
       .join("");
   }
@@ -131,7 +160,9 @@ class Jukebox {
   }
 
   onVolume({ volume }) {
-    this.elements.volumeSlider.value = volume * 100;
+    if (!this.isAdjustingVolume) {
+      this.elements.volumeSlider.value = volume * 100;
+    }
   }
 
   onTime({ duration, curr_pos }) {
@@ -147,7 +178,11 @@ class Jukebox {
   onLyrics({ lyrics, index }) {
     const container = this.elements.lyricsContainer;
     container.innerHTML = lyrics
-      .map((line, i) => (i === index ? `<div id="active-lyric">${line}</div>` : `<div>${line}</div>`))
+      .map((line, i) =>
+        i === index
+          ? `<div id="active-lyric">${line}</div>`
+          : `<div>${line}</div>`,
+      )
       .join("");
 
     const active = document.querySelector("#active-lyric");

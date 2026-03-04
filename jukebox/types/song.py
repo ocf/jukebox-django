@@ -12,7 +12,7 @@ class Song:
     format: str
     thumbnail: str
     url: str
-    id: uuid.UUID
+    id: str
     lyrics: Optional[List[LyricLine]] = None
 
     def __eq__(self, other):
