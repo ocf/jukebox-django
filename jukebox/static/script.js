@@ -97,7 +97,6 @@ class Jukebox {
       if (!songId) {
         return;
       }
-      console.log(songId);
       this.send("delete", { id: songId });
     });
   }
