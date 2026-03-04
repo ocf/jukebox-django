@@ -217,6 +217,19 @@ button {
   flex-direction: column;
   gap: 0.5em;
   overflow: hidden;
+  flex-grow: 1;
+}
+
+.delete-button {
+  background-color: transparent;
+  color: var(--text);
+  padding: 0.5em;
+  margin: 0 0.8em;
+  font-size: 1.1em;
+  &:hover {
+    background-color: transparent;
+    color: #ac8a8c;
+  }
 }
 
 .queue-item img {
