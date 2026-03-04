@@ -16,8 +16,8 @@ class Controller:
         self.download_opts = {
             "extract_audio": True,
             "format": "bestaudio",
-            "outtmp": "%(title)s",
-            "noplaylist": True,
+            "outtmpl": os.path.join(self.music_dir, "%(title)s"),
+            "restrictfilenames": True,
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "wav",
@@ -72,11 +72,7 @@ class Controller:
 
     def download_song(self, url):
         try:
-            download_opts = self.download_opts.copy()
-            download_opts["outtmpl"] = os.path.join(
-                self.music_dir, "%(title)s")
-
-            with yt_dlp.YoutubeDL(download_opts) as audio:
+            with yt_dlp.YoutubeDL(self.download_opts) as audio:
                 info_dict = audio.extract_info(url, download=True)
                 if "entries" in info_dict:
                     for entry in info_dict["entries"]:
