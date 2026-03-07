@@ -19,6 +19,7 @@ class Controller:
             "format": "bestaudio",
             "outtmpl": os.path.join(self.music_dir, "%(title)s"),
             "restrictfilenames": True,
+            "noplaylist": True,
             "postprocessors": [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "wav",
