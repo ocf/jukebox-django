@@ -56,7 +56,9 @@ input[type="range"] {
     background-color: var(--accent);
     border-radius: 50%;
     border: none;
-    transition: width 0.2s ease, height 0.2s ease; /* Smooth resizing */
+    transition:
+      width 0.2s ease,
+      height 0.2s ease; /* Smooth resizing */
   }
 
   &::-webkit-slider-thumb:hover,
@@ -82,7 +84,9 @@ input[type="range"] {
     background-color: var(--accent);
     border: none;
     border-radius: 50%;
-    transition: width 0.2s ease, height 0.2s ease; /* Smooth resizing */
+    transition:
+      width 0.2s ease,
+      height 0.2s ease; /* Smooth resizing */
   }
 
   /* Target thumb hover OR input focus */
@@ -179,6 +183,15 @@ button {
   display: flex;
   align-items: center;
   gap: 0.5em;
+}
+
+.player-left div,
+.player-right div {
+  cursor: pointer;
+}
+
+#loop-button {
+  color: var(--text);
 }
 
 .url-form {

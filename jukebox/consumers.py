@@ -67,6 +67,11 @@ class JukeboxConsumer(AsyncWebsocketConsumer):
                 if old_index is None or new_index is None:
                     return
                 self.controller.reorder(old_index, new_index)
+            elif packet_type == "loop":
+                looping = payload.get("looping")
+                if looping is None:
+                    return
+                self.controller.set_looping(looping)
 
             state = self.controller.get_state()
             await self.channel_layer.group_send(
@@ -92,6 +97,7 @@ class JukeboxConsumer(AsyncWebsocketConsumer):
                 await self.send_packet("volume", {"volume": current_state.volume})
                 await self.send_packet("time", current_state.time)
                 await self.send_packet("lyrics", current_state.lyrics)
+                await self.send_packet("loop", {"looping": current_state.looping})
                 await asyncio.sleep(1)
 
         except Exception as e:
@@ -114,6 +120,7 @@ class JukeboxConsumer(AsyncWebsocketConsumer):
             await self.send_packet("volume", {"volume": payload.get("volume")})
             await self.send_packet("time", payload.get("time", {}))
             await self.send_packet("lyrics", payload.get("lyrics"))
+            await self.send_packet("loop", {"looping": payload.get("looping")})
         except Exception as e:
             print("Error sending broadcast state:", e)
             pass

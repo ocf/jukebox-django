@@ -197,6 +197,12 @@ class Controller:
         duration = self.get_duration()
         new_pos = min(max(0, new_pos), duration)
         self.playback.seek(new_pos)
+    
+    def is_looping(self):
+        return self.playback.loops_at_end
+    
+    def set_looping(self, looping):
+        self.playback.loop_at_end(looping)
 
     def get_lyrics(self):
         # Get current song lyrics and line index
@@ -238,7 +244,8 @@ class Controller:
             time=time_state,
             now_playing=self.get_first_song(),
             queue=self.get_queue(),
-            lyrics=self.get_lyrics()
+            lyrics=self.get_lyrics(),
+            looping=self.is_looping()
         )
 
     def delete(self, song_id):

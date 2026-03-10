@@ -12,3 +12,4 @@ class JukeboxState:
     now_playing: Optional[Song]
     queue: List[Song]
     lyrics: LyricsState
+    looping: bool
