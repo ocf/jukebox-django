@@ -22,11 +22,13 @@ class Jukebox {
       lyricsContainer: document.querySelector("#lyrics-container"),
       queue: document.querySelector("#queue"),
       seekSlider: document.querySelector("#seek-slider"),
+      loopButton: document.querySelector("#loop-button"),
     };
     this.elements.playButton.style.display = "none";
     this.isSeeking = false;
     this.isAdjustingVolume = false;
     this.isDragging = false;
+    this.isLooping = false;
     this.draggedIndex = null;
   }
 
@@ -41,6 +43,7 @@ class Jukebox {
       volume: (p) => this.onVolume(p),
       time: (p) => this.onTime(p),
       lyrics: (p) => this.onLyrics(p),
+      loop: (p) => this.onLoop(p),
     };
 
     this.socket.onmessage = (e) => this.handleMessage(e);
@@ -57,6 +60,7 @@ class Jukebox {
       nextButton,
       volumeSlider,
       seekSlider,
+      loopButton,
     } = this.elements;
 
     urlButton.addEventListener("click", (e) => {
@@ -71,6 +75,10 @@ class Jukebox {
     pauseButton.addEventListener("click", () => this.send("pause"));
     playButton.addEventListener("click", () => this.send("pause"));
     nextButton.addEventListener("click", () => this.send("next"));
+
+    loopButton.addEventListener("click", () => {
+      this.send("loop", { looping: !this.isLooping });
+    });
 
     volumeSlider.addEventListener("input", () => {
       this.isAdjustingVolume = true;
@@ -183,7 +191,7 @@ class Jukebox {
     this.elements.queue.innerHTML = songs
       .map(
         (song, index) => `
-        <div class="queue-item" ${index > 0 ? 'draggable="false"' : ""} data-index="${index}">
+        <div class="queue-item" data-index="${index}" ${index > 0 ? 'draggable="false"' : ""}>
           <img src="${song.thumbnail}" alt="Thumbnail" />
           <div class="queue-info">
             <div>${song.title}</div>
@@ -218,6 +226,11 @@ class Jukebox {
     if (!this.isAdjustingVolume) {
       this.elements.volumeSlider.value = volume * 100;
     }
+  }
+
+  onLoop({ looping }) {
+    this.isLooping = looping;
+    this.elements.loopButton.style.color = looping ? "var(--text)" : "var(--text-muted)";
   }
 
   onTime({ duration, curr_pos }) {

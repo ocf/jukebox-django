@@ -1,6 +1,8 @@
+/* Goated theme: https://github.com/mountain-theme/Mountain */
 :root {
     --base: #0f0f0f;
     --overlay: #191919;
     --text: #e7e7e7;
+    --text-muted: #393939;
     --accent: #8a98ac;
 }
