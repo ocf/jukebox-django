@@ -6,6 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY", "tmp_key")
 COOKIE_FILE = None
 MUSIC_DIR = os.environ.get("JUKEBOX_MUSIC_DIR", "music")
+COOKIE_FILE = os.environ.get("JUKEBOX_COOKIE_FILE", None)
 DEBUG = False
 
 ALLOWED_HOSTS = [

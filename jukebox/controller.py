@@ -237,6 +237,22 @@ class Controller:
             return
         self.song_list = [s for s in self.song_list if s.id != song_id]
 
+    def reorder(self, old_index, new_index):
+        if old_index == new_index:
+            return
+        if old_index < 1 or new_index < 1:
+            return
+        if old_index >= len(self.song_list) or new_index >= len(self.song_list):
+            return
+
+        song = self.song_list.pop(old_index)
+        self.song_list.insert(new_index, song)
+
+        with self.song_queue.mutex:
+            self.song_queue.queue.clear()
+            for s in self.song_list[1:]:
+                self.song_queue.queue.append(s)
+
 _controller = None
 
 

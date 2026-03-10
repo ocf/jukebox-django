@@ -61,6 +61,12 @@ class JukeboxConsumer(AsyncWebsocketConsumer):
                 if song_id is None:
                     return
                 self.controller.delete(song_id)
+            elif packet_type == "reorder":
+                old_index = payload.get("old_index")
+                new_index = payload.get("new_index")
+                if old_index is None or new_index is None:
+                    return
+                self.controller.reorder(old_index, new_index)
 
             state = self.controller.get_state()
             await self.channel_layer.group_send(
