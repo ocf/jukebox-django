@@ -44,6 +44,15 @@ class Controller:
         if not os.path.exists(self.music_dir):
             print(f"Creating music directory: {self.music_dir}")
             os.makedirs(self.music_dir, exist_ok=True)
+        else:
+            # Clear music directory on startup
+            for filename in os.listdir(self.music_dir): 
+                filepath = os.path.join(self.music_dir, filename)
+                try:
+                    if os.path.isfile(filepath):
+                        os.remove(filepath)
+                except Exception as e:
+                    print(f"Unable to delete file {filepath}: {e}")
 
     def _download_worker(self):
         while True:
