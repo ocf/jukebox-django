@@ -26,6 +26,8 @@ class Jukebox {
     this.elements.playButton.style.display = "none";
     this.isSeeking = false;
     this.isAdjustingVolume = false;
+    this.isDragging = false;
+    this.draggedIndex = null;
   }
 
   initSocket() {
@@ -99,9 +101,53 @@ class Jukebox {
       }
       this.send("delete", { id: songId });
     });
+
+    this.elements.queue.addEventListener("mousedown", (e) => {
+      // Only handle should be draggable
+      const queueItem = e.target.closest(".queue-item");
+      if (queueItem && queueItem.dataset.index !== "0") {
+        const handle = e.target.closest(".drag-handle");
+        queueItem.draggable = !!handle;
+      }
+    });
+
+    this.elements.queue.addEventListener("dragstart", (e) => {
+      const queueItem = e.target.closest(".queue-item");
+      if (!queueItem || !queueItem.draggable) {
+        e.preventDefault();
+        return;
+      }
+      this.draggedIndex = parseInt(queueItem.dataset.index);
+      this.isDragging = true;
+    });
+
+    this.elements.queue.addEventListener("dragover", (e) => {
+      e.preventDefault();
+    });
+
+    this.elements.queue.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const dropTarget = e.target.closest(".queue-item");
+      if (!dropTarget) {
+        return;
+      }
+      const newIndex = parseInt(dropTarget.dataset.index);
+      if (newIndex > 0 && newIndex !== this.draggedIndex) {
+        this.send("reorder", {
+          old_index: this.draggedIndex,
+          new_index: newIndex,
+        });
+      }
+      this.isDragging = false;
+    });
+
+    this.elements.queue.addEventListener("dragend", () => {
+      this.isDragging = false;
+    });
   }
 
   send(type, payload = {}) {
+    console.log("Sending message:", { type, payload });
     this.socket.send(JSON.stringify({ type, payload }));
   }
 
@@ -131,17 +177,27 @@ class Jukebox {
   }
 
   onSongs({ songs }) {
-    console.log("Queue updated:", songs);
+    if (this.isDragging) {
+      return;
+    }
     this.elements.queue.innerHTML = songs
       .map(
         (song, index) => `
-        <div class="queue-item">
+        <div class="queue-item" ${index > 0 ? 'draggable="false"' : ""} data-index="${index}">
           <img src="${song.thumbnail}" alt="Thumbnail" />
           <div class="queue-info">
             <div>${song.title}</div>
             <div>${song.author}</div>
           </div>
-          ${index > 0 ? `<button class="delete-button" data-id="${song.id}"><i class="fa-solid fa-trash"></i></button>` : ""}
+          ${
+            index > 0
+              ? `
+            <div class="queue-actions">
+              <button class="delete-button" data-id="${song.id}"><i class="fa-solid fa-trash"></i></button>
+              <div class="drag-handle"><i class="fa-solid fa-grip-lines"></i></div>
+            </div>`
+              : ""
+          }
         </div>`,
       )
       .join("");
