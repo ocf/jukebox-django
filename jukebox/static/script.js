@@ -82,6 +82,7 @@ class Jukebox {
 
     volumeSlider.addEventListener("input", () => {
       this.isAdjustingVolume = true;
+      this.updateSliderHighlight(volumeSlider);
     });
 
     volumeSlider.addEventListener("change", () => {
@@ -91,6 +92,7 @@ class Jukebox {
 
     seekSlider.addEventListener("input", () => {
       this.isSeeking = true;
+      this.updateSliderHighlight(seekSlider);
     });
 
     seekSlider.addEventListener("change", () => {
@@ -225,12 +227,15 @@ class Jukebox {
   onVolume({ volume }) {
     if (!this.isAdjustingVolume) {
       this.elements.volumeSlider.value = volume * 100;
+      this.updateSliderHighlight(this.elements.volumeSlider);
     }
   }
 
   onLoop({ looping }) {
     this.isLooping = looping;
-    this.elements.loopButton.style.color = looping ? "var(--text)" : "var(--text-muted)";
+    this.elements.loopButton.style.color = looping
+      ? "var(--text)"
+      : "var(--text-muted)";
   }
 
   onTime({ duration, curr_pos }) {
@@ -240,7 +245,16 @@ class Jukebox {
 
     if (!this.isSeeking && duration > 0) {
       seekSlider.value = (curr_pos / duration) * 1000;
+      this.updateSliderHighlight(seekSlider);
     }
+  }
+
+  updateSliderHighlight(el) {
+    const min = el.min || 0;
+    const max = el.max || 100;
+    const value = el.value;
+    const percentage = ((value - min) / (max - min)) * 100;
+    el.style.setProperty("--range-progress", `${percentage}%`);
   }
 
   onLyrics({ lyrics, index }) {
